@@ -19,8 +19,10 @@ class Config:
 
     DB_PATH = os.getenv("DB_PATH", "data/ecommerce.db")
 
+    QDRANT_MODE = os.getenv("QDRANT_MODE", "memory")  # "memory", "local", or "server"
     QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
     QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
+    QDRANT_PATH = os.getenv("QDRANT_PATH", "data/qdrant")
 
     TEMPERATURE = 0.2
 
@@ -43,6 +45,5 @@ def get_embeddings():
     return AzureOpenAIEmbeddings(
         api_key=Config.API_KEY,
         azure_endpoint=Config.AZURE_ENDPOINT,
-        api_version=Config.API_VERSION,
         azure_deployment=Config.MODEL_EMBEDDING,
     )
