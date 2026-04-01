@@ -1,0 +1,10 @@
+langchain
+langchain-openai
+langgraph
+streamlit
+aiosqlite
+qdrant-client
+python-dotenv
+pandas
+plotly
+uuid6
