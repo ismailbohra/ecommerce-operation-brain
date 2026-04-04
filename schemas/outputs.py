@@ -35,3 +35,14 @@ class MarketingOutput(BaseModel):
         description="List of underperforming campaign names"
     )
     action_needed: bool = Field(description="Whether optimization is required")
+
+
+class SupervisorOutput(BaseModel):
+    summary: str = Field(description="Consolidated answer to user query")
+    agents_consulted: list[str] = Field(
+        description="List of agents that were consulted"
+    )
+    findings: dict[str, str] = Field(description="Key findings from each agent")
+    root_cause: str | None = Field(description="Identified root cause if applicable")
+    actions_recommended: list[str] = Field(description="List of recommended actions")
+    action_needed: bool = Field(description="Whether immediate action is required")
