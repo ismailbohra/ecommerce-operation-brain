@@ -37,6 +37,16 @@ class MarketingOutput(BaseModel):
     action_needed: bool = Field(description="Whether optimization is required")
 
 
+class MemoryOutput(BaseModel):
+    summary: str = Field(description="Brief summary of historical findings")
+    similar_incidents_found: int = Field(description="Number of similar past incidents")
+    past_actions: list[str] = Field(
+        description="Actions taken in similar past situations"
+    )
+    recommended_action: str = Field(description="Recommended action based on history")
+    confidence: str = Field(description="high, medium, or low based on similarity")
+
+
 class SupervisorOutput(BaseModel):
     summary: str = Field(description="Consolidated answer to user query")
     agents_consulted: list[str] = Field(

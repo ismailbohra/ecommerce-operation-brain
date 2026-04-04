@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import TypedDict
 from config import Config, get_llm
-from agents import SalesAgent, SupportAgent, InventoryAgent, MarketingAgent
+from agents import SalesAgent, SupportAgent, InventoryAgent, MarketingAgent, MemoryAgent
 from langgraph.graph import StateGraph, START, END
 from langchain.messages import SystemMessage, HumanMessage
 
@@ -30,6 +30,7 @@ class Supervisor:
             "inventory": InventoryAgent(),
             "support": SupportAgent(),
             "marketing": MarketingAgent(),
+            "memory": MemoryAgent(),
         }
         self.graph = self._build_graph()
 
@@ -78,10 +79,11 @@ class Supervisor:
 
     # Synthesize Agent
     def _synthesize_response(self, state: SupervisorState) -> SupervisorState:
-        agent_outputs = state["agent_outputs"].items()
-        agent_findings = "\n\n".join(
-            [f"[{name.upper()}]: {output}" for name, output in agent_outputs]
-        )
+        agent_findings = state["agent_outputs"].items()
+        agent_findings = [
+            f"[{name.upper()}]: {output}" for name, output in agent_findings
+        ]
+        agent_findings = "\n\n".join(agent_findings)
         query = state["query"]
         synthesis_prompt = load_prompt("synthesis_prompt.md").format(
             query, agent_findings

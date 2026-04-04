@@ -3,6 +3,7 @@ from .outputs import (
     InventoryOutput,
     SupportOutput,
     MarketingOutput,
+    MemoryOutput,
     SupervisorOutput,
 )
 
@@ -11,5 +12,6 @@ __all__ = [
     "InventoryOutput",
     "SupportOutput",
     "MarketingOutput",
+    "MemoryOutput",
     "SupervisorOutput",
 ]
