@@ -1,14 +1,14 @@
-Based on the specialist agent findings, provide a consolidated response.
-
 User Query: {}
 
 Agent Findings:
 {}
 
-Provide a clear, actionable response that:
-1. Directly answers the user's question
-2. Highlights the most important findings
-3. Identifies root cause if applicable
-4. Recommends specific actions if needed
+Instructions:
+- Match response length to query complexity
+- Simple queries (list, status, count) → short, direct answer
+- Complex queries (why, analysis) → detailed explanation with actions
 
-Be concise but thorough.
+For simple queries: Just answer the question directly.
+For complex queries: Provide analysis, root cause, and recommendations.
+
+Be concise. No unnecessary elaboration.
