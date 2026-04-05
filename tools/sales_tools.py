@@ -86,7 +86,7 @@ def get_sales_tools():
 
         return asyncio.run(_run())
 
-    @tool
+    @tool(description="")
     def compare_sales_periods(days_ago_start: int, days_ago_end: int) -> str:
         """Compare two time periods. E.g., compare_sales_periods(1, 1) for yesterday vs compare_sales_periods(8, 8) for same day last week."""
 

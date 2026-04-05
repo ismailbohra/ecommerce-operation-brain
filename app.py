@@ -6,7 +6,7 @@ from vectorstore import seed_vector_store
 from datetime import datetime, timedelta
 
 st.set_page_config(
-    page_title="E-commerce Operations Brain", page_icon="🧠", layout="wide"
+    page_title="E-commerce Operation Brains", page_icon="ECOMX", layout="wide"
 )
 
 
@@ -164,10 +164,12 @@ def main():
         with st.chat_message("user"):
             st.markdown(query)
 
-        # Get response
+        # Get response with chat history
         with st.chat_message("assistant"):
             with st.spinner("Analyzing..."):
-                result = supervisor.invoke(query)
+                result = supervisor.invoke(
+                    query, st.session_state.messages
+                )  # Pass history
 
             st.markdown(result["response"])
             render_agent_badges(result["agents_consulted"])

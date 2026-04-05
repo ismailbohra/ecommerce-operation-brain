@@ -17,7 +17,6 @@ class BaseAgent:
     name: str = "base"
     model: str = None
     prompt_file: str = None
-    output_schema: type[BaseModel] = None
 
     def __init__(self):
         self.llm = get_llm(self.model)
@@ -27,7 +26,6 @@ class BaseAgent:
             model=self.llm,
             tools=self.tools,
             system_prompt=self.prompt,
-            response_format=self.output_schema,
         )
 
     def _load_prompt(self) -> str:
@@ -39,6 +37,5 @@ class BaseAgent:
         return []
 
     def invoke(self, query: str) -> str:
-        result = self.agent.invoke({"messages": [HumanMessage(content=query)]})
-        response: str = result["messages"][-1].content
-        return response
+        response = self.agent.invoke({"messages": [HumanMessage(content=query)]})
+        return response["messages"][-1].content
