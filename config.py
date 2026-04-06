@@ -14,7 +14,8 @@ class Config:
     MODEL_INVENTORY = os.getenv("MODEL_INVENTORY", "claude-haiku-4-5@20251001")
     MODEL_SUPPORT = os.getenv("MODEL_SUPPORT", "claude-haiku-4-5@20251001")
     MODEL_MARKETING = os.getenv("MODEL_MARKETING", "claude-haiku-4-5@20251001")
-    MODEL_MEMORY = os.getenv("MODEL_MEMORY", "claude-3-5-haiku@20241022")
+    MODEL_MEMORY = os.getenv("MODEL_MEMORY", "claude-haiku-4-5@20251001")
+    MODEL_ACTION = os.getenv("MODEL_ACTION", "claude-haiku-4-5@20251001")
     MODEL_EMBEDDING = os.getenv("MODEL_EMBEDDING", "text-embedding-3-small-1")
 
     DB_PATH = os.getenv("DB_PATH", "data/ecommerce.db")
@@ -27,15 +28,15 @@ class Config:
     TEMPERATURE = 0.2
 
 
-def get_llm(model_name: str):
+def get_llm(model_name: str = None, temperature: float = None):
     from langchain_openai import AzureChatOpenAI
 
     return AzureChatOpenAI(
         api_key=Config.API_KEY,
         azure_endpoint=Config.AZURE_ENDPOINT,
         api_version=Config.API_VERSION,
-        azure_deployment=model_name,
-        temperature=Config.TEMPERATURE,
+        azure_deployment=model_name or Config.MODEL_SUPERVISOR,
+        temperature=temperature if temperature is not None else Config.TEMPERATURE,
     )
 
 
@@ -47,3 +48,32 @@ def get_embeddings():
         azure_endpoint=Config.AZURE_ENDPOINT,
         azure_deployment=Config.MODEL_EMBEDDING,
     )
+
+
+# Pre-configured LLM getters for each role
+def get_supervisor_llm():
+    return get_llm(Config.MODEL_SUPERVISOR)
+
+
+def get_sales_llm():
+    return get_llm(Config.MODEL_SALES)
+
+
+def get_inventory_llm():
+    return get_llm(Config.MODEL_INVENTORY)
+
+
+def get_support_llm():
+    return get_llm(Config.MODEL_SUPPORT)
+
+
+def get_marketing_llm():
+    return get_llm(Config.MODEL_MARKETING)
+
+
+def get_memory_llm():
+    return get_llm(Config.MODEL_MEMORY)
+
+
+def get_action_llm():
+    return get_llm(Config.MODEL_ACTION)

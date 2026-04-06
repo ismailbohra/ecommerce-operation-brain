@@ -1,4 +1,4 @@
-from .qdrant_store import VectorStore
-from .seed_vectors import seed_vector_store
+from .store import VectorStore
+from .seed import seed_vectors
 
-__all__ = ["VectorStore", "seed_vector_store"]
+__all__ = ["VectorStore", "seed_vectors"]
