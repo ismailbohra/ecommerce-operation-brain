@@ -3,6 +3,7 @@ from .inventory_agent import InventoryAgent
 from .support_agent import SupportAgent
 from .marketing_agent import MarketingAgent
 from .memory_agent import MemoryAgent
+from .action_agent import ActionAgent
 from .supervisor import Supervisor
 
 __all__ = [
@@ -11,5 +12,6 @@ __all__ = [
     "SupportAgent",
     "MarketingAgent",
     "MemoryAgent",
+    "ActionAgent",
     "Supervisor",
 ]

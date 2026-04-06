@@ -9,6 +9,7 @@ from .support_agent import SupportAgent
 from .inventory_agent import InventoryAgent
 from .marketing_agent import MarketingAgent
 from .memory_agent import MemoryAgent
+from .action_agent import ActionAgent
 
 
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
@@ -25,6 +26,8 @@ class SupervisorState(TypedDict):
     agents_to_call: list[str]
     agent_outputs: dict[str, str]
     final_response: str
+    action_proposed: bool
+    action_proposals: str
 
 
 class Supervisor:
@@ -39,6 +42,7 @@ class Supervisor:
             "marketing": MarketingAgent(),
             "memory": MemoryAgent(),
         }
+        self.action_agent = ActionAgent()
         self.graph = self._build_graph()
 
     def _build_graph(self) -> StateGraph:
@@ -46,17 +50,30 @@ class Supervisor:
         graph.add_node("classify", self._classify_query)
         graph.add_node("router", self._route_query)
         graph.add_node("call_agents", self._call_agents)
+        graph.add_node("check_action", self._check_action_needed)
         graph.add_node("synthesize", self._synthesize_response)
         graph.add_edge(START, "classify")
         graph.add_edge("classify", "router")
         graph.add_edge("router", "call_agents")
-        graph.add_edge("call_agents", "synthesize")
+        graph.add_edge("call_agents", "check_action")
+        graph.add_edge("check_action", "synthesize")
         graph.add_edge("synthesize", END)
         return graph.compile()
 
     def _classify_query(self, state: SupervisorState) -> SupervisorState:
         query_lower = state["query"].lower()
-
+        action_keywords = [
+            "fix",
+            "resolve",
+            "restock",
+            "pause",
+            "stop",
+            "do something",
+            "take action",
+            "correct",
+            "address",
+        ]
+        is_action = any(kw in query_lower for kw in action_keywords)
         simple_keywords = [
             "list",
             "show",
@@ -75,27 +92,25 @@ class Supervisor:
             "root cause",
             "recommend",
             "should",
-            "fix",
-            "do with",
         ]
-
         is_simple = any(kw in query_lower for kw in simple_keywords)
         is_complex = any(kw in query_lower for kw in complex_keywords)
-
-        state["query_type"] = "complex" if is_complex and not is_simple else "simple"
+        if is_action:
+            state["query_type"] = "action"
+        elif is_complex and not is_simple:
+            state["query_type"] = "complex"
+        else:
+            state["query_type"] = "simple"
         return state
 
     def _route_query(self, state: SupervisorState) -> SupervisorState:
-        # Include chat history for context
         context = ""
         if state["chat_history"]:
             context = f"\nRecent conversation:\n{state['chat_history']}\n"
-
         routing_prompt = f"""{context}
 Current query: {state["query"]}
 
 {load_prompt("route_prompt.md").format(state["query"])}"""
-
         response = self.llm.invoke(
             [
                 SystemMessage(
@@ -105,28 +120,38 @@ Current query: {state["query"]}
             ]
         )
         content = response.content.lower().strip()
-
         if content == "none":
             state["agents_to_call"] = []
             return state
-
         agents = [a.strip() for a in content.split(",")]
         agents = [a for a in agents if a in self.agents]
         state["agents_to_call"] = agents
         return state
 
     def _call_agents(self, state: SupervisorState) -> SupervisorState:
-        # Include chat history in agent queries for context
         query_with_context = state["query"]
         if state["chat_history"]:
-            query_with_context = f"Context from conversation:\n{state['chat_history']}\n\nCurrent question: {state['query']}"
-
+            query_with_context = f"Context:\n{state['chat_history']}\n\nCurrent question: {state['query']}"
         outputs = {}
         for agent_name in state["agents_to_call"]:
             agent = self.agents[agent_name]
             response = agent.invoke(query_with_context)
             outputs[agent_name] = response
         state["agent_outputs"] = outputs
+        return state
+
+    def _check_action_needed(self, state: SupervisorState) -> SupervisorState:
+        state["action_proposed"] = False
+        state["action_proposals"] = ""
+        if state["query_type"] == "action":
+            # Generate action proposals
+            context = f"Query: {state['query']}\n\nFindings:\n"
+            context += "\n".join(
+                [f"[{k}]: {v}" for k, v in state["agent_outputs"].items()]
+            )
+            proposals = self.action_agent.propose(context)
+            state["action_proposed"] = True
+            state["action_proposals"] = proposals
         return state
 
     def _synthesize_response(self, state: SupervisorState) -> SupervisorState:
@@ -136,24 +161,29 @@ Current query: {state["query"]}
                 for name, output in state["agent_outputs"].items()
             ]
         )
-
-        # Include chat history for context
         context = ""
         if state["chat_history"]:
             context = f"Recent conversation:\n{state['chat_history']}\n\n"
-
-        if state["query_type"] == "simple":
+        if state["action_proposed"]:
             synthesis_prompt = f"""{context}User Query: {state["query"]}
 
 Agent Findings:
 {agent_findings}
 
-Provide a SHORT, DIRECT answer. Use conversation context to understand references like "this", "that", "it"."""
+Proposed Actions:
+{state["action_proposals"]}
+
+Summarize findings and present the action proposals clearly.
+Ask user to approve or reject each action."""
+        elif state["query_type"] == "simple":
+            synthesis_prompt = f"""{context}User Query: {state["query"]}
+
+Agent Findings:
+{agent_findings}
+
+Provide a SHORT, DIRECT answer."""
         else:
-            synthesis_prompt = f"""{context}{load_prompt("synthesis_prompt.md").format(state["query"], agent_findings)}
-
-Use conversation context to understand references like "this", "that", "it"."""
-
+            synthesis_prompt = f"""{context}{load_prompt("synthesis_prompt.md").format(state["query"], agent_findings)}"""
         response = self.llm.invoke(
             [SystemMessage(content=self.prompt), HumanMessage(content=synthesis_prompt)]
         )
@@ -161,17 +191,15 @@ Use conversation context to understand references like "this", "that", "it"."""
         return state
 
     def invoke(self, query: str, chat_history: list[dict] = None) -> dict:
-        # Format chat history
         history_str = ""
         if chat_history:
-            recent = chat_history[-6:]  # Last 3 exchanges
+            recent = chat_history[-6:]
             history_str = "\n".join(
                 [
                     f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content'][:200]}"
                     for m in recent
                 ]
             )
-
         initial_state = SupervisorState(
             query=query,
             chat_history=history_str,
@@ -179,6 +207,8 @@ Use conversation context to understand references like "this", "that", "it"."""
             agents_to_call=[],
             agent_outputs={},
             final_response="",
+            action_proposed=False,
+            action_proposals="",
         )
         result = self.graph.invoke(initial_state)
         return {
@@ -186,4 +216,11 @@ Use conversation context to understand references like "this", "that", "it"."""
             "agents_consulted": result["agents_to_call"],
             "findings": result["agent_outputs"],
             "response": result["final_response"],
+            "action_proposed": result["action_proposed"],
+            "action_proposals": result["action_proposals"],
         }
+
+    def execute_action(self, action: str) -> str:
+        """Execute an approved action."""
+        result = self.action_agent.execute(action)
+        return result
