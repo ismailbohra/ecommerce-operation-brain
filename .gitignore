@@ -1,3 +1,8 @@
 .venv
 .env
-create_project.py
+
+**/__pycache__/
+*.pyc
+
+data/qdrant
+data/*.db

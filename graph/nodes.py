@@ -39,7 +39,7 @@ def router_node(state: AgentState) -> AgentState:
 
     messages = [
         SystemMessage(content=ROUTER_PROMPT),
-        HumanMessage(content=f"Query: {query}"),
+        HumanMessage(content=f"Context:\n{state["chat_history"]}\n\nQuery: {query}"),
     ]
 
     response = llm.invoke(messages)
@@ -49,7 +49,7 @@ def router_node(state: AgentState) -> AgentState:
     agents = [a.strip() for a in content.split(",") if a.strip() in valid_agents]
 
     if not agents:
-        agents = ["sales"]
+        agents = []
 
     state["agents_to_call"] = agents
     return state
@@ -373,7 +373,7 @@ def synthesis_node(state: AgentState) -> AgentState:
     messages = [
         SystemMessage(content=SYNTHESIS_PROMPT),
         HumanMessage(
-            content=f"User Question: {query}\n\n# Agent Findings\n\n{findings}"
+            content=f"Context:\n{state["chat_history"]}\n\nUser Question: {query}\n\n# Agent Findings\n\n{findings}"
         ),
     ]
 
