@@ -84,7 +84,7 @@ def render_action_approval(actions: list[dict], workflow):
     for action in actions:
         col1, col2 = st.columns([0.05, 0.95])
         with col1:
-            if st.checkbox(" ", key=f"action_{action['id']}", value=True):
+            if st.checkbox(" ", key=f"action_{action['id']}", value=False):
                 selected.append(action["id"])
         with col2:
             st.markdown(f"**{action['description']}**")

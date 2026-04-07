@@ -8,6 +8,7 @@ class AgentState(TypedDict):
 
     # Router
     agents_to_call: list[str]
+    direct_response: bool
 
     # Agent responses
     agent_outputs: dict[str, str]

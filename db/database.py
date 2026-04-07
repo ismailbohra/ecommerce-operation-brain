@@ -183,7 +183,15 @@ class Database:
 
     # Actions
     async def apply_discount(self, product_id: int, percent: float):
+        before = await self._fetch(
+            "SELECT price FROM products WHERE id = ?", (product_id,)
+        )
+        if not before:
+            return
+
+        old_price = before[0]["price"]
+        new_price = old_price * (1 - percent / 100.0)
+
         await self._execute(
-            "UPDATE products SET price = price * (1 - ? / 100) WHERE id = ?",
-            (percent, product_id),
+            "UPDATE products SET price = ? WHERE id = ?", (new_price, product_id)
         )

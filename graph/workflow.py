@@ -10,6 +10,12 @@ from .nodes import (
 )
 
 
+def should_call_agents(state: AgentState) -> str:
+    if state.get("direct_response", False):
+        return "direct"
+    return "agents"
+
+
 def should_propose_actions(state: AgentState) -> str:
     if state.get("proposed_actions"):
         return "has_actions"
@@ -28,7 +34,11 @@ def create_workflow():
 
     # Define flow
     graph.add_edge(START, "router")
-    graph.add_edge("router", "agents")
+
+    # Conditional: If router gave "none", go to synthesis directly.
+    graph.add_conditional_edges(
+        "router", should_call_agents, {"direct": "synthesis", "agents": "agents"}
+    )
     graph.add_edge("agents", "synthesis")
     graph.add_edge("synthesis", "action")
 

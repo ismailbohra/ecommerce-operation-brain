@@ -39,19 +39,28 @@ def router_node(state: AgentState) -> AgentState:
 
     messages = [
         SystemMessage(content=ROUTER_PROMPT),
-        HumanMessage(content=f"Context:\n{state["chat_history"]}\n\nQuery: {query}"),
+        HumanMessage(content=f"Context:\n{state['chat_history']}\n\nQuery: {query}"),
     ]
 
     response = llm.invoke(messages)
     content = response.content.strip().lower()
 
+    # Handle "none" case - simple query, no agents needed
+    if content == "none" or content == "none.":
+        state["agents_to_call"] = []
+        state["agent_outputs"] = {}
+        state["direct_response"] = True
+        return state
+
     valid_agents = {"sales", "inventory", "support", "marketing", "memory"}
     agents = [a.strip() for a in content.split(",") if a.strip() in valid_agents]
 
+    # Fallback if parsing failed but wasn't "none"
     if not agents:
-        agents = []
+        agents = ["sales", "memory"]
 
     state["agents_to_call"] = agents
+    state["direct_response"] = False
     return state
 
 
@@ -366,16 +375,24 @@ def synthesis_node(state: AgentState) -> AgentState:
     query = state["query"]
     outputs = state["agent_outputs"]
 
-    findings = "\n\n---\n\n".join(
-        [f"## {k.upper()} Agent\n\n{v}" for k, v in outputs.items()]
-    )
+    if not outputs:
+        messages = [
+            SystemMessage(content=SYNTHESIS_PROMPT),
+            HumanMessage(
+                content=f"Context:\n{state["chat_history"]}\n\nUser Question: {query}"
+            ),
+        ]
+    else:
+        findings = "\n\n---\n\n".join(
+            [f"## {k.upper()} Agent\n\n{v}" for k, v in outputs.items()]
+        )
 
-    messages = [
-        SystemMessage(content=SYNTHESIS_PROMPT),
-        HumanMessage(
-            content=f"Context:\n{state["chat_history"]}\n\nUser Question: {query}\n\n# Agent Findings\n\n{findings}"
-        ),
-    ]
+        messages = [
+            SystemMessage(content=SYNTHESIS_PROMPT),
+            HumanMessage(
+                content=f"Context:\n{state["chat_history"]}\n\nUser Question: {query}\n\n# Agent Findings\n\n{findings}"
+            ),
+        ]
 
     response = llm.invoke(messages)
     state["synthesis"] = response.content
@@ -389,20 +406,6 @@ def action_node(state: AgentState) -> AgentState:
 
     query = state["query"].lower()
     synthesis = state["synthesis"]
-
-    action_keywords = [
-        "fix",
-        "resolve",
-        "restock",
-        "pause",
-        "discount",
-        "create ticket",
-        "do something",
-        "take action",
-    ]
-    if not any(k in query for k in action_keywords):
-        state["proposed_actions"] = []
-        return state
 
     # Get current state
     out_of_stock = run_async(db.get_out_of_stock())
