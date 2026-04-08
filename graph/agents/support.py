@@ -1,7 +1,6 @@
 from config import get_support_llm
 from graph.prompts import AGENT_PROMPTS
-from graph.data_fetchers import fetch_support_data
-from graph.formatters import format_tickets, format_ticket_summary
+from graph.tools import SUPPORT_TOOLS
 from .base import BaseAgent
 
 
@@ -14,16 +13,5 @@ class SupportAgent(BaseAgent):
     def get_prompt(self) -> str:
         return AGENT_PROMPTS["support"]
 
-    def fetch_data(self, query: str) -> dict:
-        return fetch_support_data()
-
-    def format_data(self, data: dict) -> str:
-        return f"""
-## Support Data
-
-Open Tickets ({len(data['tickets'])}):
-{format_tickets(data['tickets'])}
-
-By Category/Priority:
-{format_ticket_summary(data['summary'])}
-"""
+    def get_tools(self) -> list:
+        return SUPPORT_TOOLS

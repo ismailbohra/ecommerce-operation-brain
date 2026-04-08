@@ -106,6 +106,14 @@ class Database:
             (start, end),
         )
 
+    async def get_product_sales(
+        self, product_id: int, start: str, end: str
+    ) -> list[dict]:
+        return await self._fetch(
+            "SELECT * FROM sales WHERE product_id = ? AND sale_date BETWEEN ? AND ? ORDER BY sale_date DESC",
+            (product_id, start, end),
+        )
+
     # Inventory
     async def get_inventory(self) -> list[dict]:
         return await self._fetch(
@@ -157,6 +165,13 @@ class Database:
     async def resolve_ticket(self, ticket_id: int):
         await self._execute(
             "UPDATE tickets SET status = 'resolved' WHERE id = ?", (ticket_id,)
+        )
+
+    async def get_ticket_stats(self, start: str, end: str) -> list[dict]:
+        return await self._fetch(
+            "SELECT DATE(created_at) as date, COUNT(*) as count FROM tickets "
+            "WHERE DATE(created_at) BETWEEN ? AND ? GROUP BY DATE(created_at)",
+            (start, end),
         )
 
     # Campaigns

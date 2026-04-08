@@ -1,7 +1,6 @@
 from config import get_marketing_llm
 from graph.prompts import AGENT_PROMPTS
-from graph.data_fetchers import fetch_marketing_data
-from graph.formatters import format_campaigns
+from graph.tools import MARKETING_TOOLS
 from .base import BaseAgent
 
 
@@ -14,13 +13,5 @@ class MarketingAgent(BaseAgent):
     def get_prompt(self) -> str:
         return AGENT_PROMPTS["marketing"]
 
-    def fetch_data(self, query: str) -> dict:
-        return fetch_marketing_data()
-
-    def format_data(self, data: dict) -> str:
-        return f"""
-## Marketing Data
-
-Active Campaigns ({len(data['campaigns'])}):
-{format_campaigns(data['campaigns'])}
-"""
+    def get_tools(self) -> list:
+        return MARKETING_TOOLS

@@ -37,7 +37,6 @@ def get_llm(model_name: str = None, temperature: float = None):
         api_version=Config.API_VERSION,
         azure_deployment=model_name or Config.MODEL_SUPERVISOR,
         temperature=temperature if temperature is not None else Config.TEMPERATURE,
-        streaming=True,
     )
 
 

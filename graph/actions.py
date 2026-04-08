@@ -2,33 +2,20 @@ import json
 import uuid
 from db import Database
 from graph.data_fetchers import run_async, fetch_action_context
-from graph.formatters import (
-    format_out_of_stock,
-    format_low_stock,
-    format_campaigns,
-    format_tickets,
-)
+
+# from graph.formatters import (
+#     format_out_of_stock,
+#     format_low_stock,
+#     format_campaigns,
+#     format_tickets,
+# )
 
 db = Database()
 
 
 def build_action_context(query: str, synthesis: str) -> str:
-    ctx = fetch_action_context()
+    # ctx = fetch_action_context()
     return f"""
-## Current System State
-
-Out of Stock Products:
-{format_out_of_stock(ctx['out_of_stock'])}
-
-Low Stock Products:
-{format_low_stock(ctx['low_stock'])}
-
-Active Campaigns:
-{format_campaigns(ctx['campaigns'])}
-
-Open Tickets:
-{format_tickets(ctx['tickets'])}
-
 ## User Request
 {query}
 

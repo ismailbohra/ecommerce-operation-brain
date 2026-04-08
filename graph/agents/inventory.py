@@ -1,7 +1,6 @@
 from config import get_inventory_llm
 from graph.prompts import AGENT_PROMPTS
-from graph.data_fetchers import fetch_inventory_data
-from graph.formatters import format_inventory, format_out_of_stock, format_low_stock
+from graph.tools import INVENTORY_TOOLS
 from .base import BaseAgent
 
 
@@ -14,19 +13,5 @@ class InventoryAgent(BaseAgent):
     def get_prompt(self) -> str:
         return AGENT_PROMPTS["inventory"]
 
-    def fetch_data(self, query: str) -> dict:
-        return fetch_inventory_data()
-
-    def format_data(self, data: dict) -> str:
-        return f"""
-## Inventory Data
-
-Out of Stock ({len(data['out_of_stock'])}):
-{format_out_of_stock(data['out_of_stock'])}
-
-Low Stock ({len(data['low_stock'])}):
-{format_low_stock(data['low_stock'])}
-
-All Products:
-{format_inventory(data['inventory'])}
-"""
+    def get_tools(self) -> list:
+        return INVENTORY_TOOLS
