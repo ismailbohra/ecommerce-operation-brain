@@ -1,6 +1,7 @@
 from .workflow import create_workflow, run_query, resume_with_actions
 from .state import AgentState
 from .prompts import ROUTER_PROMPT, SYNTHESIS_PROMPT, ACTION_PROMPT, AGENT_PROMPTS
+from .agents import AGENTS
 
 __all__ = [
     "create_workflow",
@@ -11,4 +12,5 @@ __all__ = [
     "SYNTHESIS_PROMPT",
     "ACTION_PROMPT",
     "AGENT_PROMPTS",
+    "AGENTS",
 ]
