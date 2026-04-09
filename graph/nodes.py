@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from langchain_core.messages import SystemMessage, HumanMessage
 from config import get_supervisor_llm, get_action_llm, get_callbacks
 from .state import AgentState
@@ -35,11 +36,27 @@ def router_node(state: AgentState) -> AgentState:
     return state
 
 
+def _run_agent(agent_name: str, query: str) -> tuple[str, str]:
+    return agent_name, AGENTS[agent_name].run(query)
+
+
 def execute_agents_node(state: AgentState) -> AgentState:
+    agents_to_call = [a for a in state["agents_to_call"] if a in AGENTS]
+
+    if not agents_to_call:
+        state["agent_outputs"] = {}
+        return state
+
     outputs = {}
-    for agent_name in state["agents_to_call"]:
-        if agent_name in AGENTS:
-            outputs[agent_name] = AGENTS[agent_name].run(state["query"])
+    with ThreadPoolExecutor(max_workers=len(agents_to_call)) as executor:
+        futures = {
+            executor.submit(_run_agent, name, state["query"]): name
+            for name in agents_to_call
+        }
+        for future in as_completed(futures):
+            name, result = future.result()
+            outputs[name] = result
+
     state["agent_outputs"] = outputs
     return state
 
