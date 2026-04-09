@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage, AIMessage
+from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
+from config import get_callbacks
 
 
 class BaseAgent(ABC):
@@ -21,6 +22,7 @@ class BaseAgent(ABC):
         llm = self.get_llm()
         tools = self.get_tools()
         tool_map = {t.name: t for t in tools} if tools else {}
+        callbacks = get_callbacks()
 
         if tools:
             llm = llm.bind_tools(tools)
@@ -39,9 +41,8 @@ class BaseAgent(ABC):
         ]
 
         max_iterations = 10
-        c = 0
         for _ in range(max_iterations):
-            response = llm.invoke(messages)
+            response = llm.invoke(messages, config={"callbacks": callbacks})
 
             if not hasattr(response, "tool_calls") or not response.tool_calls:
                 return response.content or "No response generated."
@@ -59,7 +60,5 @@ class BaseAgent(ABC):
                     result = f"Unknown tool: {tc['name']}"
 
                 messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
-                c += 1
-                print(c)
 
         return messages[-1].content if messages else "Max iterations reached."

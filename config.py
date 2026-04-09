@@ -28,6 +28,20 @@ class Config:
     TEMPERATURE = 0.2
 
 
+def get_langfuse_handler():
+    if not os.getenv("LANGFUSE_SECRET_KEY"):
+        return None
+
+    from langfuse.langchain import CallbackHandler
+
+    return CallbackHandler()
+
+
+def get_callbacks():
+    handler = get_langfuse_handler()
+    return [handler] if handler else []
+
+
 def get_llm(model_name: str = None, temperature: float = None):
     from langchain_openai import AzureChatOpenAI
 
@@ -50,7 +64,6 @@ def get_embeddings():
     )
 
 
-# Pre-configured LLM getters for each role
 def get_supervisor_llm():
     return get_llm(Config.MODEL_SUPERVISOR)
 

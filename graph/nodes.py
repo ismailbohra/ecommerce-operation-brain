@@ -1,5 +1,5 @@
 from langchain_core.messages import SystemMessage, HumanMessage
-from config import get_supervisor_llm, get_action_llm
+from config import get_supervisor_llm, get_action_llm, get_callbacks
 from .state import AgentState
 from .prompts import ROUTER_PROMPT, SYNTHESIS_PROMPT, ACTION_PROMPT
 from .agents import AGENTS
@@ -10,6 +10,7 @@ VALID_AGENTS = {"sales", "inventory", "support", "marketing", "memory"}
 
 def router_node(state: AgentState) -> AgentState:
     llm = get_supervisor_llm()
+    callbacks = get_callbacks()
 
     messages = [
         SystemMessage(content=ROUTER_PROMPT),
@@ -18,7 +19,9 @@ def router_node(state: AgentState) -> AgentState:
         ),
     ]
 
-    response = llm.invoke(messages).content.strip().lower()
+    response = (
+        llm.invoke(messages, config={"callbacks": callbacks}).content.strip().lower()
+    )
 
     if response in ("none", "none."):
         state["agents_to_call"] = []
@@ -43,6 +46,7 @@ def execute_agents_node(state: AgentState) -> AgentState:
 
 def synthesis_node(state: AgentState) -> AgentState:
     llm = get_supervisor_llm()
+    callbacks = get_callbacks()
     query = state["query"]
     outputs = state["agent_outputs"]
 
@@ -59,7 +63,7 @@ def synthesis_node(state: AgentState) -> AgentState:
         HumanMessage(content=content),
     ]
 
-    response = llm.invoke(messages).content
+    response = llm.invoke(messages, config={"callbacks": callbacks}).content
     state["synthesis"] = response
     state["response"] = response
     return state
@@ -67,6 +71,7 @@ def synthesis_node(state: AgentState) -> AgentState:
 
 def action_node(state: AgentState) -> AgentState:
     llm = get_action_llm()
+    callbacks = get_callbacks()
     context = build_action_context(state["query"], state["synthesis"])
 
     messages = [
@@ -74,7 +79,7 @@ def action_node(state: AgentState) -> AgentState:
         HumanMessage(content=context),
     ]
 
-    response = llm.invoke(messages)
+    response = llm.invoke(messages, config={"callbacks": callbacks})
     state["proposed_actions"] = parse_actions(response.content)
     return state
 
