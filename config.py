@@ -9,21 +9,21 @@ class Config:
     AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT")
     API_VERSION = os.getenv("API_VERSION")
 
-    MODEL_SUPERVISOR = os.getenv("MODEL_SUPERVISOR", "claude-sonnet-4@20250514")
-    MODEL_SALES = os.getenv("MODEL_SALES", "claude-haiku-4-5@20251001")
-    MODEL_INVENTORY = os.getenv("MODEL_INVENTORY", "claude-haiku-4-5@20251001")
-    MODEL_SUPPORT = os.getenv("MODEL_SUPPORT", "claude-haiku-4-5@20251001")
-    MODEL_MARKETING = os.getenv("MODEL_MARKETING", "claude-haiku-4-5@20251001")
-    MODEL_MEMORY = os.getenv("MODEL_MEMORY", "claude-haiku-4-5@20251001")
-    MODEL_ACTION = os.getenv("MODEL_ACTION", "claude-haiku-4-5@20251001")
-    MODEL_EMBEDDING = os.getenv("MODEL_EMBEDDING", "text-embedding-3-small-1")
+    MODEL_SUPERVISOR = os.getenv("MODEL_SUPERVISOR")
+    MODEL_SALES = os.getenv("MODEL_SALES")
+    MODEL_INVENTORY = os.getenv("MODEL_INVENTORY")
+    MODEL_SUPPORT = os.getenv("MODEL_SUPPORT")
+    MODEL_MARKETING = os.getenv("MODEL_MARKETING")
+    MODEL_MEMORY = os.getenv("MODEL_MEMORY")
+    MODEL_ACTION = os.getenv("MODEL_ACTION")
+    MODEL_EMBEDDING = os.getenv("MODEL_EMBEDDING")
 
     DB_PATH = os.getenv("DB_PATH", "data/ecommerce.db")
 
-    QDRANT_MODE = os.getenv("QDRANT_MODE", "memory")
-    QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
-    QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
-    QDRANT_PATH = os.getenv("QDRANT_PATH", "data/qdrant")
+    QDRANT_MODE = os.getenv("QDRANT_MODE")
+    QDRANT_HOST = os.getenv("QDRANT_HOST")
+    QDRANT_PORT = int(os.getenv("QDRANT_PORT"))
+    QDRANT_PATH = os.getenv("QDRANT_PATH")
 
     TEMPERATURE = 0.2
 

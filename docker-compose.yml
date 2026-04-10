@@ -1,0 +1,66 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecommerce-brain
+    ports:
+      - "8501:8501"
+    environment:
+      # API Configuration (set these in .env file)
+      - DIAL_API_KEY=${DIAL_API_KEY}
+      - AZURE_ENDPOINT=${AZURE_ENDPOINT}
+      - API_VERSION=${API_VERSION}
+      
+      # Model Configuration (optional overrides)
+      - MODEL_SUPERVISOR=${MODEL_SUPERVISOR:-}
+      - MODEL_SALES=${MODEL_SALES:-}
+      - MODEL_INVENTORY=${MODEL_INVENTORY:-}
+      - MODEL_SUPPORT=${MODEL_SUPPORT:-}
+      - MODEL_MARKETING=${MODEL_MARKETING:-}
+      - MODEL_MEMORY=${MODEL_MEMORY:-}
+      - MODEL_ACTION=${MODEL_ACTION:-}
+      - MODEL_EMBEDDING=${MODEL_EMBEDDING:-}
+      
+      # Database Configuration
+      - DB_PATH=/app/data/ecommerce.db
+      
+      # Qdrant Configuration - use 'server' mode to connect to qdrant service
+      - QDRANT_MODE=${QDRANT_MODE:-memory}
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_PATH=/app/data/qdrant
+      
+      # Langfuse (optional - only set if you have a Langfuse account)
+      # Uncomment and configure these to enable observability:
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
+      - LANGFUSE_HOST=${LANGFUSE_HOST}
+    volumes:
+      # Persist database and vector store data
+      - app-data:/app/data
+    networks:
+      - ecommerce-network
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: ecommerce-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    networks:
+      - ecommerce-network
+
+volumes:
+  app-data:
+    driver: local
+  qdrant-data:
+    driver: local
+
+networks:
+  ecommerce-network:
+    driver: bridge
