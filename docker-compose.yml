@@ -13,23 +13,23 @@ services:
       - API_VERSION=${API_VERSION}
       
       # Model Configuration (optional overrides)
-      - MODEL_SUPERVISOR=${MODEL_SUPERVISOR:-}
-      - MODEL_SALES=${MODEL_SALES:-}
-      - MODEL_INVENTORY=${MODEL_INVENTORY:-}
-      - MODEL_SUPPORT=${MODEL_SUPPORT:-}
-      - MODEL_MARKETING=${MODEL_MARKETING:-}
-      - MODEL_MEMORY=${MODEL_MEMORY:-}
-      - MODEL_ACTION=${MODEL_ACTION:-}
-      - MODEL_EMBEDDING=${MODEL_EMBEDDING:-}
+      - MODEL_SUPERVISOR=${MODEL_SUPERVISOR}
+      - MODEL_SALES=${MODEL_SALES}
+      - MODEL_INVENTORY=${MODEL_INVENTORY}
+      - MODEL_SUPPORT=${MODEL_SUPPORT}
+      - MODEL_MARKETING=${MODEL_MARKETING}
+      - MODEL_MEMORY=${MODEL_MEMORY}
+      - MODEL_ACTION=${MODEL_ACTION}
+      - MODEL_EMBEDDING=${MODEL_EMBEDDING}
       
       # Database Configuration
       - DB_PATH=/app/data/ecommerce.db
       
       # Qdrant Configuration - use 'server' mode to connect to qdrant service
-      - QDRANT_MODE=${QDRANT_MODE:-memory}
-      - QDRANT_HOST=qdrant
-      - QDRANT_PORT=6333
-      - QDRANT_PATH=/app/data/qdrant
+      - QDRANT_MODE=${QDRANT_MODE}
+      - QDRANT_HOST=${QDRANT_HOST}
+      - QDRANT_PORT=${QDRANT_PORT}
+      - QDRANT_PATH=/app/${QDRANT_PATH}
       
       # Langfuse (optional - only set if you have a Langfuse account)
       # Uncomment and configure these to enable observability:
