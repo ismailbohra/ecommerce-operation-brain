@@ -52,6 +52,7 @@ def get_llm(model_name: str = None, temperature: float = None, timeout: int = 12
         azure_deployment=model_name or Config.MODEL_SUPERVISOR,
         temperature=temperature if temperature is not None else Config.TEMPERATURE,
         timeout=timeout,
+        streaming=True
     )
 
 

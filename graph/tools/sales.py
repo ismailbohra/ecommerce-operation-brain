@@ -199,10 +199,47 @@ def get_sales_for_product(
     return "\n".join(lines)
 
 
+@tool
+def get_product_info(product_id: int) -> str:
+    """Get product details including name, category, price, and description.
+
+    Args:
+        product_id: The product ID to look up.
+    """
+    product = _run_async(db.get_product(product_id))
+
+    if not product:
+        return f"Product ID {product_id} not found."
+
+    return (
+        f"Product: {product['name']} (ID: {product_id})\n"
+        f"Category: {product['category']}\n"
+        f"Price: ${product['price']:.2f}\n"
+        f"Description: {product['description']}"
+    )
+
+
+@tool
+def get_all_products_list() -> str:
+    """Get list of all products with their IDs and prices."""
+    products = _run_async(db.get_all_products())
+
+    if not products:
+        return "No products found."
+
+    lines = [f"All Products ({len(products)}):", ""]
+    for p in products:
+        lines.append(f"  [{p['id']}] {p['name']} - ${p['price']:.2f} ({p['category']})")
+
+    return "\n".join(lines)
+
+
 SALES_TOOLS = [
     get_sales_summary,
     get_top_products,
     get_sales_by_region,
     compare_sales_periods,
     get_sales_for_product,
+    get_all_products_list,
+    get_product_info,
 ]

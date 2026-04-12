@@ -81,7 +81,17 @@ class Database:
             await db.executescript(SCHEMA)
             await db.commit()
 
-    # Sales
+    # Sales / Products
+
+    async def get_product(self, product_id: int) -> dict | None:
+        results = await self._fetch(
+            "SELECT * FROM products WHERE id = ?", (product_id,)
+        )
+        return results[0] if results else None
+
+    async def get_all_products(self) -> list[dict]:
+        return await self._fetch("SELECT * FROM products ORDER BY name")
+
     async def get_sales(self, start: str, end: str) -> list[dict]:
         return await self._fetch(
             "SELECT sale_date, SUM(amount) as revenue, SUM(quantity) as orders "

@@ -3,7 +3,7 @@ import asyncio
 import uuid
 from datetime import datetime, timedelta
 from db import Database, seed_database
-from vectorstore import seed_vectors  # Add this
+from vectorstore import seed_vectors
 from graph import create_workflow, run_query, resume_with_actions
 
 st.set_page_config(page_title="E-commerce Brain", page_icon="🧠", layout="wide")
@@ -68,8 +68,10 @@ def render_sidebar():
     col2.metric("Ad Spend", f"${m['ad_spend']:,.0f}")
 
     st.divider()
+
     if st.button("🔄 Refresh", use_container_width=True):
         st.rerun()
+
     if st.button("🗑️ Clear Chat", use_container_width=True):
         st.session_state.messages = []
         st.session_state.pending_actions = None
@@ -84,7 +86,7 @@ def render_action_approval(actions: list[dict], workflow):
     for action in actions:
         col1, col2 = st.columns([0.05, 0.95])
         with col1:
-            if st.checkbox(" ", key=f"action_{action['id']}", value=False):
+            if st.checkbox(" ", key=f"action_{action['id']}"):
                 selected.append(action["id"])
         with col2:
             st.markdown(f"**{action['description']}**")
@@ -127,18 +129,21 @@ def main():
     if "thread_id" not in st.session_state:
         st.session_state.thread_id = str(uuid.uuid4())
 
-    # Layout
+    # Sidebar
     with st.sidebar:
         render_sidebar()
 
     st.title("🧠 E-commerce Operations Brain")
 
-    # Chat history
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-            if "agents" in msg and msg["agents"]:
-                st.caption(f"Consulted: {', '.join(msg['agents'])}")
+    # ✅ CHAT CONTAINER (SCROLL SAFE)
+    chat_container = st.container(height=600)
+
+    with chat_container:
+        for msg in st.session_state.messages:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+                if "agents" in msg and msg["agents"]:
+                    st.caption(f"Consulted: {', '.join(msg['agents'])}")
 
     # Pending actions (HITL)
     if st.session_state.pending_actions:
@@ -149,35 +154,35 @@ def main():
     if query := st.chat_input("Ask about your business..."):
         st.session_state.messages.append({"role": "user", "content": query})
 
-        with st.chat_message("user"):
-            st.markdown(query)
+        with chat_container:
+            with st.chat_message("user"):
+                st.markdown(query)
 
-        with st.chat_message("assistant"):
-            with st.spinner("Analyzing..."):
-                result = run_query(
-                    workflow,
-                    query,
-                    st.session_state.thread_id,
-                    st.session_state.messages,
-                )
+            with st.chat_message("assistant"):
+                with st.spinner("Analyzing..."):
+                    result = run_query(
+                        workflow,
+                        query,
+                        st.session_state.thread_id,
+                        st.session_state.messages,
+                    )
 
-            st.markdown(result["response"])
+                st.markdown(result["response"])
 
-            if result.get("agents_to_call"):
-                st.caption(f"Consulted: {', '.join(result['agents_to_call'])}")
+                if result.get("agents_to_call"):
+                    st.caption(f"Consulted: {', '.join(result['agents_to_call'])}")
 
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": result["response"],
-                    "agents": result.get("agents_to_call", []),
-                }
-            )
+        st.session_state.messages.append(
+            {
+                "role": "assistant",
+                "content": result["response"],
+                "agents": result.get("agents_to_call", []),
+            }
+        )
 
-            # Check for pending actions (HITL)
-            if result.get("proposed_actions"):
-                st.session_state.pending_actions = result["proposed_actions"]
-                st.rerun()
+        if result.get("proposed_actions"):
+            st.session_state.pending_actions = result["proposed_actions"]
+            st.rerun()
 
 
 if __name__ == "__main__":
