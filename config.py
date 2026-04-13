@@ -17,8 +17,9 @@ class Config:
     MODEL_MEMORY = os.getenv("MODEL_MEMORY")
     MODEL_ACTION = os.getenv("MODEL_ACTION")
     MODEL_EMBEDDING = os.getenv("MODEL_EMBEDDING")
+    MODEL_TESTING = os.getenv("MODEL_TESTING")
 
-    DB_PATH = os.getenv("DB_PATH", "data/ecommerce.db")
+    DB_PATH = os.getenv("DB_PATH")
 
     QDRANT_MODE = os.getenv("QDRANT_MODE")
     QDRANT_HOST = os.getenv("QDRANT_HOST")

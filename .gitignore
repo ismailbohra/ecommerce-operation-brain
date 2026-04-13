@@ -81,5 +81,5 @@ dmypy.json
 # Misc
 data/qdrant
 data/*.db
-z.py
 project_dump.txt
+REPORT.md

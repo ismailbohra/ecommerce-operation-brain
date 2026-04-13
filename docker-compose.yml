@@ -21,6 +21,7 @@ services:
       - MODEL_MEMORY=${MODEL_MEMORY}
       - MODEL_ACTION=${MODEL_ACTION}
       - MODEL_EMBEDDING=${MODEL_EMBEDDING}
+      - MODEL_TESTING=${MODEL_TESTING}
       
       # Database Configuration
       - DB_PATH=/app/data/ecommerce.db

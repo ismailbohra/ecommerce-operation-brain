@@ -68,6 +68,7 @@ docker-compose*.yml
 
 # Documentation
 README.md
+REPORT.md
 docs/
 *.md
 
