@@ -6,7 +6,7 @@ from db import Database, seed_database
 from vectorstore import seed_vectors
 from graph import create_workflow, run_query, resume_with_actions
 
-st.set_page_config(page_title="E-commerce Brain", page_icon="🧠", layout="wide")
+st.set_page_config(page_title="ecomx", page_icon="🦉", layout="wide")
 
 
 def run_async(coro):
@@ -133,7 +133,7 @@ def main():
     with st.sidebar:
         render_sidebar()
 
-    st.title("🧠 E-commerce Operations Brain")
+    st.title("🦉 ecomx")
 
     # ✅ CHAT CONTAINER (SCROLL SAFE)
     chat_container = st.container(height=600)
