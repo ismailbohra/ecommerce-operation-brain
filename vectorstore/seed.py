@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from .store import VectorStore
+from logger import log
 
 
 def seed_vectors():
@@ -7,14 +8,14 @@ def seed_vectors():
     vs.init_collections()
 
     if vs.count("incidents") > 0:
-        print("Vector store already seeded")
+        log.info("VectorStore already seeded")
         return
 
+    log.info("Seeding VectorStore...")
     seed_incidents(vs)
     seed_tickets(vs)
     seed_products(vs)
-
-    print("✅ Vector store seeded with 1 year of data")
+    log.info("VectorStore seeded successfully")
 
 
 def seed_incidents(vs: VectorStore):
@@ -264,11 +265,11 @@ def seed_incidents(vs: VectorStore):
             outcome=inc["outcome"],
         )
 
-    print(f"  ✓ Added {len(incidents)} incidents to vector store")
+    log.debug(f"Added {len(incidents)} incidents to VectorStore")
 
 
 def seed_tickets(vs: VectorStore):
-    resolved_tickets = [
+    tickets = [
         {
             "id": 101,
             "subject": "Order not delivered after 10 days",
@@ -376,7 +377,7 @@ def seed_tickets(vs: VectorStore):
         },
     ]
 
-    for t in resolved_tickets:
+    for t in tickets:
         vs.add_ticket(
             ticket_id=t["id"],
             subject=t["subject"],
@@ -385,7 +386,7 @@ def seed_tickets(vs: VectorStore):
             resolution=t["resolution"],
         )
 
-    print(f"  ✓ Added {len(resolved_tickets)} resolved tickets to vector store")
+    log.debug(f"Added {len(tickets)} tickets to VectorStore")
 
 
 def seed_products(vs: VectorStore):
@@ -485,7 +486,7 @@ def seed_products(vs: VectorStore):
     for p in products:
         vs.add_product(product_id=p[0], name=p[1], category=p[2], description=p[3])
 
-    print(f"  ✓ Added {len(products)} products to vector store")
+    log.debug(f"Added {len(products)} products to VectorStore")
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ from qdrant_client.models import (
     MatchValue,
 )
 from config import Config, get_embeddings
+from logger import log
 
 
 class VectorStore:
@@ -54,20 +55,22 @@ class VectorStore:
         mode = Config.QDRANT_MODE
 
         if mode == "memory":
-            print("Qdrant: in-memory mode")
+            log.info("VectorStore: in-memory mode")
             return QdrantClient(":memory:")
 
         elif mode == "local":
             os.makedirs(Config.QDRANT_PATH, exist_ok=True)
-            print(f"Qdrant: local at {Config.QDRANT_PATH}")
+            log.info(f"VectorStore: local at {Config.QDRANT_PATH}")
             try:
                 return QdrantClient(path=Config.QDRANT_PATH)
             except RuntimeError:
-                print("Qdrant locked, falling back to memory")
+                log.warning("Qdrant locked, falling back to memory")
                 return QdrantClient(":memory:")
 
         else:
-            print(f"Qdrant: server at {Config.QDRANT_HOST}:{Config.QDRANT_PORT}")
+            log.info(
+                f"VectorStore: server at {Config.QDRANT_HOST}:{Config.QDRANT_PORT}"
+            )
             return QdrantClient(host=Config.QDRANT_HOST, port=Config.QDRANT_PORT)
 
     def _embed(self, text: str) -> list[float]:
@@ -84,7 +87,8 @@ class VectorStore:
                     collection_name=name,
                     vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
                 )
-                print(f"Created collection: {name}")
+                log.debug(f"Created collection: {name}")
+        log.info("VectorStore collections initialized")
 
     def _search(
         self,

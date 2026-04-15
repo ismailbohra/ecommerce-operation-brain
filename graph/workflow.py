@@ -8,6 +8,7 @@ from .nodes import (
     action_node,
     execute_actions_node,
 )
+from logger import log
 
 
 def should_call_agents(state: AgentState) -> str:
@@ -23,6 +24,7 @@ def should_propose_actions(state: AgentState) -> str:
 
 
 def create_workflow():
+    log.info("Creating workflow graph")
     graph = StateGraph(AgentState)
 
     # Add nodes
@@ -50,6 +52,7 @@ def create_workflow():
 
     # Compile with checkpointer for HITL
     checkpointer = MemorySaver()
+    log.info("Workflow graph created")
     return graph.compile(
         checkpointer=checkpointer,
         interrupt_before=["execute"],  # HITL: pause before execution
@@ -57,6 +60,7 @@ def create_workflow():
 
 
 def run_query(workflow, query: str, thread_id: str, chat_history: list = None):
+    log.info(f"Running query: {query[:50]}...")
     config = {"configurable": {"thread_id": thread_id}}
 
     initial_state = {
@@ -72,13 +76,16 @@ def run_query(workflow, query: str, thread_id: str, chat_history: list = None):
     }
 
     result = workflow.invoke(initial_state, config)
+    log.info("Query completed")
     return result
 
 
 def resume_with_actions(workflow, thread_id: str, approved_ids: list[str]):
+    log.info(f"Resuming with {len(approved_ids)} approved actions")
     config = {"configurable": {"thread_id": thread_id}}
 
     # Update state with approved actions and resume
     workflow.update_state(config, {"approved_action_ids": approved_ids})
     result = workflow.invoke(None, config)
+    log.info("Actions executed")
     return result

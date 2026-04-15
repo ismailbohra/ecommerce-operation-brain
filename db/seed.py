@@ -2,6 +2,7 @@ import asyncio
 import random
 from datetime import datetime, timedelta
 from .database import Database
+from logger import log
 
 random.seed(42)
 
@@ -12,6 +13,7 @@ async def seed_database():
 
     existing = await db._fetch("SELECT COUNT(*) as cnt FROM products")
     if existing and existing[0]["cnt"] > 0:
+        log.info("Database already seeded")
         return
 
     await seed_products(db)
@@ -21,7 +23,7 @@ async def seed_database():
     await seed_campaigns(db)
     await seed_incidents(db)
 
-    print("✅ Database seeded with 1 year of data")
+    log.info("Database seeded successfully")
 
 
 async def seed_products(db: Database):
@@ -77,7 +79,7 @@ async def seed_products(db: Database):
             "INSERT INTO products (id, name, category, price, description) VALUES (?, ?, ?, ?, ?)",
             p,
         )
-    print(f"  ✓ Added {len(products)} products")
+    log.debug(f"Added {len(products)} products")
 
 
 async def seed_inventory(db: Database):
@@ -103,7 +105,7 @@ async def seed_inventory(db: Database):
             "INSERT INTO inventory (product_id, stock, reorder_level) VALUES (?, ?, ?)",
             i,
         )
-    print(f"  ✓ Added {len(inventory)} inventory records")
+        log.debug(f"Added {len(inventory)} inventory records")
 
 
 async def seed_sales(db: Database):
@@ -215,7 +217,7 @@ async def seed_sales(db: Database):
             )
             sales_count += 1
 
-    print(f"  ✓ Added {sales_count} sales records (365 days)")
+    log.debug(f"Added {sales_count} sales records")
 
 
 async def seed_tickets(db: Database):
@@ -372,7 +374,7 @@ async def seed_tickets(db: Database):
             )
             resolved_count += 1
 
-    print(f"  ✓ Added {len(open_tickets)} open + {resolved_count} resolved tickets")
+    log.debug(f"Added {len(open_tickets)} open + {resolved_count} resolved tickets")
 
 
 async def seed_campaigns(db: Database):
@@ -421,8 +423,8 @@ async def seed_campaigns(db: Database):
             c,
         )
 
-    print(
-        f"  ✓ Added {len(active_campaigns)} active + {len(historical_campaigns)} historical campaigns"
+    log.debug(
+        f"Added {len(active_campaigns)} active + {len(historical_campaigns)} historical campaigns"
     )
 
 
@@ -579,7 +581,7 @@ async def seed_incidents(db: Database):
             inc,
         )
 
-    print(f"  ✓ Added {len(incidents)} incidents")
+    log.debug(f"Added {len(incidents)} incidents")
 
 
 if __name__ == "__main__":

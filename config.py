@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from logger import log
 
 load_dotenv()
 
@@ -46,6 +47,8 @@ def get_callbacks():
 def get_llm(model_name: str = None, temperature: float = None, timeout: int = 120):
     from langchain_openai import AzureChatOpenAI
 
+    model = model_name
+    log.debug(f"LLM init: {model}")
     return AzureChatOpenAI(
         api_key=Config.API_KEY,
         azure_endpoint=Config.AZURE_ENDPOINT,
@@ -53,13 +56,14 @@ def get_llm(model_name: str = None, temperature: float = None, timeout: int = 12
         azure_deployment=model_name or Config.MODEL_SUPERVISOR,
         temperature=temperature if temperature is not None else Config.TEMPERATURE,
         timeout=timeout,
-        streaming=True
+        streaming=True,
     )
 
 
 def get_embeddings():
     from langchain_openai import AzureOpenAIEmbeddings
 
+    log.debug(f"Embeddings init: {Config.MODEL_EMBEDDING}")
     return AzureOpenAIEmbeddings(
         api_key=Config.API_KEY,
         azure_endpoint=Config.AZURE_ENDPOINT,

@@ -1,6 +1,7 @@
 import aiosqlite
 import os
 from config import Config
+from logger import log
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS products (
@@ -80,6 +81,7 @@ class Database:
         async with aiosqlite.connect(self.path) as db:
             await db.executescript(SCHEMA)
             await db.commit()
+        log.info(f"Database initialized: {self.path}")
 
     # Sales / Products
 

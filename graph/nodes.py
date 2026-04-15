@@ -5,11 +5,13 @@ from .state import AgentState
 from .prompts import ROUTER_PROMPT, SYNTHESIS_PROMPT, ACTION_PROMPT
 from .agents import AGENTS
 from .actions import build_action_context, parse_actions, execute_action
+from logger import log
 
 VALID_AGENTS = {"sales", "inventory", "support", "marketing", "memory"}
 
 
 def router_node(state: AgentState) -> AgentState:
+    log.info("Router: analyzing query")
     llm = get_supervisor_llm()
     callbacks = get_callbacks()
 
@@ -28,15 +30,18 @@ def router_node(state: AgentState) -> AgentState:
         state["agents_to_call"] = []
         state["agent_outputs"] = {}
         state["direct_response"] = True
+        log.info("Router: no agents needed")
     else:
         agents = [a.strip() for a in response.split(",") if a.strip() in VALID_AGENTS]
         state["agents_to_call"] = agents or ["sales", "memory"]
         state["direct_response"] = False
+        log.info(f"Router: calling agents {state['agents_to_call']}")
 
     return state
 
 
 def _run_agent(agent_name: str, query: str) -> tuple[str, str]:
+    log.info(f"Agent [{agent_name}]: executing")
     return agent_name, AGENTS[agent_name].run(query)
 
 
@@ -56,12 +61,14 @@ def execute_agents_node(state: AgentState) -> AgentState:
         for future in as_completed(futures):
             name, result = future.result()
             outputs[name] = result
+            log.info(f"Agent [{name}]: completed")
 
     state["agent_outputs"] = outputs
     return state
 
 
 def synthesis_node(state: AgentState) -> AgentState:
+    log.info("Synthesis: Analyzing findings")
     llm = get_supervisor_llm()
     callbacks = get_callbacks()
     query = state["query"]
@@ -83,10 +90,12 @@ def synthesis_node(state: AgentState) -> AgentState:
     response = llm.invoke(messages, config={"callbacks": callbacks}).content
     state["synthesis"] = response
     state["response"] = response
+    log.info("Synthesis: completed")
     return state
 
 
 def action_node(state: AgentState) -> AgentState:
+    log.info("Action: analyzing for actions")
     llm = get_action_llm()
     callbacks = get_callbacks()
     context = build_action_context(state["query"], state["synthesis"])
@@ -98,6 +107,7 @@ def action_node(state: AgentState) -> AgentState:
 
     response = llm.invoke(messages, config={"callbacks": callbacks})
     state["proposed_actions"] = parse_actions(response.content)
+    log.info(f"Action: found {len(state['proposed_actions'])} proposed actions")
     return state
 
 
@@ -105,13 +115,15 @@ def execute_actions_node(state: AgentState) -> AgentState:
     approved_ids = state.get("approved_action_ids", [])
     actions = state.get("proposed_actions", [])
     results = []
-
+    log.info(f"Execute: running {len(approved_ids)} approved actions")
     for action in actions:
         if action["id"] in approved_ids:
             try:
                 results.append(execute_action(action))
+                log.info(f"Execute: {action['type']} - success")
             except Exception as e:
                 results.append(f"✗ Failed: {action.get('description')} - {str(e)}")
+                log.error(f"Execute: {action['type']} - failed: {e}")
 
     state["action_results"] = results
     return state

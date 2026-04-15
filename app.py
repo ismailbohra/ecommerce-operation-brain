@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from db import Database, seed_database
 from vectorstore import seed_vectors
 from graph import create_workflow, run_query, resume_with_actions
+from logger import log
 
 st.set_page_config(page_title="ecomx", page_icon="🦉", layout="wide")
 
@@ -15,9 +16,12 @@ def run_async(coro):
 
 @st.cache_resource
 def init_system():
+    log.info("Initializing system...")
     run_async(seed_database())
     seed_vectors()
-    return create_workflow()
+    workflow = create_workflow()
+    log.info("System initialized")
+    return workflow
 
 
 def get_dashboard_metrics():
