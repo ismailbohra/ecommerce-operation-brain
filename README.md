@@ -1,4 +1,4 @@
-# 🧠 E-commerce AI Brain
+# 🦉ecomx
 
 An intelligent multi-agent AI system for e-commerce business operations, built with LangGraph and LangChain. This application provides a conversational interface powered by specialized AI agents that handle sales analytics, inventory management, customer support, marketing campaigns, and organizational memory.
 
