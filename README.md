@@ -78,8 +78,8 @@ The project follows a **graph-based multi-agent architecture** using LangGraph:
 ecommerce_ai_brain/
 ├── app.py                      # Main Streamlit application entry point
 ├── config.py                   # Configuration and LLM initialization
+├── logger.py                   # Logging configuration and utilities
 ├── requirements.txt            # Python dependencies
-├── requirements-docker.txt     # Docker-specific dependencies
 ├── Dockerfile                  # Docker container configuration
 ├── docker-compose.yml          # Multi-container Docker setup
 ├── python.ini                  # Python configuration
@@ -147,13 +147,7 @@ ecommerce_ai_brain/
 │       ├── test_marketing.py
 │       └── test_memory.py
 │
-└── data/                       # Runtime data storage
-    ├── ecommerce.db            # SQLite database (generated)
-    └── qdrant/                 # Qdrant persistent storage
-        └── collection/
-            ├── incidents/
-            ├── products/
-            └── tickets/
+└── data/                       # Storage for DB and vectorstore
 ```
 
 ---
