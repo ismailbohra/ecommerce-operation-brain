@@ -6,6 +6,7 @@ from .prompts import ROUTER_PROMPT, SYNTHESIS_PROMPT, ACTION_PROMPT
 from .agents import AGENTS
 from .actions import build_action_context, parse_actions, execute_action
 from logger import log
+from datetime import datetime
 
 VALID_AGENTS = {"sales", "inventory", "support", "marketing", "memory"}
 
@@ -74,6 +75,8 @@ def synthesis_node(state: AgentState) -> AgentState:
     query = state["query"]
     outputs = state["agent_outputs"]
 
+    today = datetime.now().strftime("%Y-%m-%d")
+
     if outputs:
         findings = "\n\n---\n\n".join(
             [f"## {k.upper()} Agent\n\n{v}" for k, v in outputs.items()]
@@ -83,7 +86,7 @@ def synthesis_node(state: AgentState) -> AgentState:
         content = f"Context:\n{state['chat_history']}\n\nUser Question: {query}"
 
     messages = [
-        SystemMessage(content=SYNTHESIS_PROMPT),
+        SystemMessage(content=f"Today's date is {today}.\n\n{SYNTHESIS_PROMPT}"),
         HumanMessage(content=content),
     ]
 

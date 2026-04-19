@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 from config import get_callbacks
+from datetime import datetime
 
 
 class BaseAgent(ABC):
@@ -27,6 +28,8 @@ class BaseAgent(ABC):
         if tools:
             llm = llm.bind_tools(tools)
 
+        today = datetime.now().strftime("%Y-%m-%d")
+
         tool_descriptions = ""
         if tools:
             tool_descriptions = (
@@ -35,8 +38,12 @@ class BaseAgent(ABC):
             for t in tools:
                 tool_descriptions += f"- {t.name}: {t.description}\n"
 
+        system_content = (
+            f"Today's date is {today}.\n\n{self.get_prompt()}{tool_descriptions}"
+        )
+
         messages = [
-            SystemMessage(content=self.get_prompt() + tool_descriptions),
+            SystemMessage(content=system_content),
             HumanMessage(content=query),
         ]
 
