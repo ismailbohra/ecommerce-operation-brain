@@ -4,8 +4,11 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: ecommerce-brain
+    restart: on-failure
     ports:
-      - "8501:8501"
+      - "8000:8000"
+    depends_on:
+      - qdrant
     environment:
       # API Configuration (set these in .env file)
       - DIAL_API_KEY=${DIAL_API_KEY}
@@ -27,10 +30,10 @@ services:
       - DB_PATH=/app/data/ecommerce.db
       
       # Qdrant Configuration - use 'server' mode to connect to qdrant service
-      - QDRANT_MODE=${QDRANT_MODE}
-      - QDRANT_HOST=${QDRANT_HOST}
-      - QDRANT_PORT=${QDRANT_PORT}
-      - QDRANT_PATH=/app/${QDRANT_PATH}
+      - QDRANT_MODE=server
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_PATH=/app/data/qdrant
       
       # Langfuse (optional - only set if you have a Langfuse account)
       # Uncomment and configure these to enable observability:
