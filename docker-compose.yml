@@ -2,50 +2,50 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: backend/Dockerfile
+    env_file:
+      - backend/.env
     container_name: ecommerce-brain
     restart: on-failure
     ports:
       - "8000:8000"
     depends_on:
-      - qdrant
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
     environment:
-      # API Configuration (set these in .env file)
-      - DIAL_API_KEY=${DIAL_API_KEY}
-      - AZURE_ENDPOINT=${AZURE_ENDPOINT}
-      - API_VERSION=${API_VERSION}
-      
-      # Model Configuration (optional overrides)
-      - MODEL_SUPERVISOR=${MODEL_SUPERVISOR}
-      - MODEL_SALES=${MODEL_SALES}
-      - MODEL_INVENTORY=${MODEL_INVENTORY}
-      - MODEL_SUPPORT=${MODEL_SUPPORT}
-      - MODEL_MARKETING=${MODEL_MARKETING}
-      - MODEL_MEMORY=${MODEL_MEMORY}
-      - MODEL_ACTION=${MODEL_ACTION}
-      - MODEL_EMBEDDING=${MODEL_EMBEDDING}
-      - MODEL_TESTING=${MODEL_TESTING}
-      
-      # Database Configuration
-      - DB_PATH=/app/data/ecommerce.db
-      
-      # Qdrant Configuration - use 'server' mode to connect to qdrant service
+      # Container-specific overrides (all other vars come from env_file: backend/.env)
+      - DATABASE_URL=postgresql://ecomx:ecomx@postgres:5432/ecomx
       - QDRANT_MODE=server
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
       - QDRANT_PATH=/app/data/qdrant
-      
-      # Langfuse (optional - only set if you have a Langfuse account)
-      # Uncomment and configure these to enable observability:
-      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
-      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
-      - LANGFUSE_HOST=${LANGFUSE_HOST}
     volumes:
-      # Persist database and vector store data
+      # Persist vector store data
       - app-data:/app/data
     networks:
       - ecommerce-network
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ecomx
+      POSTGRES_PASSWORD: ecomx
+      POSTGRES_DB: ecomx
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecomx -d ecomx"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ecommerce-network
   qdrant:
     image: qdrant/qdrant:latest
     container_name: ecommerce-qdrant
@@ -61,6 +61,8 @@ services:
 
 volumes:
   app-data:
+    driver: local
+  postgres-data:
     driver: local
   qdrant-data:
     driver: local

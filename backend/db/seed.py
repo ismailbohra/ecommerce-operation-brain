@@ -1,8 +1,10 @@
 import asyncio
 import random
 from datetime import datetime, timedelta
-from .database import Database
+
 from logger import log
+
+from .database import Database
 
 random.seed(42)
 
@@ -76,7 +78,7 @@ async def seed_products(db: Database):
     ]
     for p in products:
         await db._execute(
-            "INSERT INTO products (id, name, category, price, description) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO products (id, name, category, price, description) VALUES ($1, $2, $3, $4, $5)",
             p,
         )
     log.debug(f"Added {len(products)} products")
@@ -102,7 +104,7 @@ async def seed_inventory(db: Database):
     ]
     for i in inventory:
         await db._execute(
-            "INSERT INTO inventory (product_id, stock, reorder_level) VALUES (?, ?, ?)",
+            "INSERT INTO inventory (product_id, stock, reorder_level) VALUES ($1, $2, $3)",
             i,
         )
         log.debug(f"Added {len(inventory)} inventory records")
@@ -212,7 +214,7 @@ async def seed_sales(db: Database):
             region = random.choices(regions, [30, 25, 25, 20])[0]
 
             await db._execute(
-                "INSERT INTO sales (product_id, quantity, amount, sale_date, region) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO sales (product_id, quantity, amount, sale_date, region) VALUES ($1, $2, $3, $4, $5)",
                 (product_id, quantity, price * quantity, date.isoformat(), region),
             )
             sales_count += 1
@@ -336,7 +338,7 @@ async def seed_tickets(db: Database):
 
     for t in open_tickets:
         await db._execute(
-            "INSERT INTO tickets (subject, description, category, priority, status, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO tickets (subject, description, category, priority, status, created_at) VALUES ($1, $2, $3, $4, $5, $6)",
             t,
         )
 
@@ -369,7 +371,7 @@ async def seed_tickets(db: Database):
                 competitor=random.choice(["Amazon", "Walmart", "Target"]),
             )
             await db._execute(
-                "INSERT INTO tickets (subject, description, category, priority, status, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO tickets (subject, description, category, priority, status, created_at) VALUES ($1, $2, $3, $4, $5, $6)",
                 (subject, desc, template[2], template[3], "resolved", date.isoformat()),
             )
             resolved_count += 1
@@ -392,7 +394,7 @@ async def seed_campaigns(db: Database):
 
     for c in active_campaigns:
         await db._execute(
-            "INSERT INTO campaigns (name, channel, budget, spent, status, impressions, clicks, conversions) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO campaigns (name, channel, budget, spent, status, impressions, clicks, conversions) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
             c,
         )
 
@@ -419,7 +421,7 @@ async def seed_campaigns(db: Database):
 
     for c in historical_campaigns:
         await db._execute(
-            "INSERT INTO campaigns (name, channel, budget, spent, status, impressions, clicks, conversions) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO campaigns (name, channel, budget, spent, status, impressions, clicks, conversions) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
             c,
         )
 
@@ -577,7 +579,7 @@ async def seed_incidents(db: Database):
 
     for inc in incidents:
         await db._execute(
-            "INSERT INTO incidents (type, description, root_cause, action_taken, outcome, occurred_at) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO incidents (type, description, root_cause, action_taken, outcome, occurred_at) VALUES ($1, $2, $3, $4, $5, $6)",
             inc,
         )
 

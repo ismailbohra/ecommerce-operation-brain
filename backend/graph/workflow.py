@@ -1,14 +1,18 @@
-from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.memory import MemorySaver
-from .state import AgentState
+from __future__ import annotations
+
+import asyncio
+from langgraph.graph import END, START, StateGraph
+
+from logger import log
+
 from .nodes import (
-    router_node,
-    execute_agents_node,
-    synthesis_node,
     action_node,
     execute_actions_node,
+    execute_agents_node,
+    router_node,
+    synthesis_node,
 )
-from logger import log
+from .state import AgentState
 
 
 def should_call_agents(state: AgentState) -> str:
@@ -23,7 +27,7 @@ def should_propose_actions(state: AgentState) -> str:
     return "no_actions"
 
 
-def create_workflow():
+def create_workflow(checkpointer):
     log.info("Creating workflow graph")
     graph = StateGraph(AgentState)
 
@@ -51,7 +55,6 @@ def create_workflow():
     graph.add_edge("execute", END)
 
     # Compile with checkpointer for HITL
-    checkpointer = MemorySaver()
     log.info("Workflow graph created")
     return graph.compile(
         checkpointer=checkpointer,
@@ -59,8 +62,21 @@ def create_workflow():
     )
 
 
-def run_query(workflow, query: str, thread_id: str, chat_history: list = None):
+def run_query(
+    workflow,
+    query: str,
+    thread_id: str,
+    chat_history: list = None,
+    progress_queue: "asyncio.Queue | None" = None,
+    progress_loop: "asyncio.AbstractEventLoop | None" = None,
+):
     log.info(f"Running query: {query[:50]}...")
+
+    # Bind the per-request queue so nodes can emit progress events.
+    if progress_queue is not None and progress_loop is not None:
+        from .events import bind_queue
+        bind_queue(progress_queue, progress_loop)
+
     config = {"configurable": {"thread_id": thread_id}}
 
     initial_state = {

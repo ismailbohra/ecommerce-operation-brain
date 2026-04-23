@@ -1,5 +1,7 @@
 import os
+
 from dotenv import load_dotenv
+
 from logger import log
 
 load_dotenv()
@@ -20,7 +22,9 @@ class Config:
     MODEL_EMBEDDING = os.getenv("MODEL_EMBEDDING")
     MODEL_TESTING = os.getenv("MODEL_TESTING")
 
-    DB_PATH = os.getenv("DB_PATH")
+    DATABASE_URL = os.getenv(
+        "DATABASE_URL", "postgresql://ecomx:ecomx@localhost:5432/ecomx"
+    )
 
     QDRANT_MODE = os.getenv("QDRANT_MODE")
     QDRANT_HOST = os.getenv("QDRANT_HOST")

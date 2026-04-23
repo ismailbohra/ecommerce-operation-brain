@@ -1,9 +1,11 @@
 ﻿python-dotenv
 langchain
 langgraph
+langgraph-checkpoint-postgres
 langchain-openai
 langfuse
-aiosqlite
+asyncpg
+psycopg[binary]
 qdrant-client
 fastapi
 uvicorn[standard]

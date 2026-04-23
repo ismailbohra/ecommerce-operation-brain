@@ -5,6 +5,7 @@ from .state import AgentState
 from .prompts import ROUTER_PROMPT, SYNTHESIS_PROMPT, ACTION_PROMPT
 from .agents import AGENTS
 from .actions import build_action_context, parse_actions, execute_action
+from .events import emit
 from logger import log
 from datetime import datetime
 
@@ -13,6 +14,7 @@ VALID_AGENTS = {"sales", "inventory", "support", "marketing", "memory"}
 
 def router_node(state: AgentState) -> AgentState:
     log.info("Router: analyzing query")
+    emit("router_start")
     llm = get_supervisor_llm()
     callbacks = get_callbacks()
 
@@ -32,18 +34,33 @@ def router_node(state: AgentState) -> AgentState:
         state["agent_outputs"] = {}
         state["direct_response"] = True
         log.info("Router: no agents needed")
+        emit("router_done", agents=[])
     else:
         agents = [a.strip() for a in response.split(",") if a.strip() in VALID_AGENTS]
         state["agents_to_call"] = agents or ["sales", "memory"]
         state["direct_response"] = False
         log.info(f"Router: calling agents {state['agents_to_call']}")
+        emit("router_done", agents=state["agents_to_call"])
 
     return state
 
 
-def _run_agent(agent_name: str, query: str) -> tuple[str, str]:
+def _run_agent(
+    agent_name: str,
+    query: str,
+    progress_queue=None,
+    progress_loop=None,
+) -> tuple[str, str]:
     log.info(f"Agent [{agent_name}]: executing")
-    return agent_name, AGENTS[agent_name].run(query)
+    # Bind the queue in this worker thread so emit() works here too.
+    if progress_queue is not None and progress_loop is not None:
+        from .events import bind_queue
+        bind_queue(progress_queue, progress_loop)
+    emit("agent_start", name=agent_name)
+    result = AGENTS[agent_name].run(query)
+    log.info(f"Agent [{agent_name}]: completed")
+    emit("agent_done", name=agent_name)
+    return agent_name, result
 
 
 def execute_agents_node(state: AgentState) -> AgentState:
@@ -53,23 +70,33 @@ def execute_agents_node(state: AgentState) -> AgentState:
         state["agent_outputs"] = {}
         return state
 
+    # Capture the queue/loop from the current thread's context so worker threads
+    # can emit per-agent progress events.
+    from .events import _progress_queue, _progress_loop
+    captured_queue = _progress_queue.get(None)
+    captured_loop = _progress_loop.get(None)
+
+    emit("agents_start", agents=agents_to_call)
     outputs = {}
     with ThreadPoolExecutor(max_workers=len(agents_to_call)) as executor:
         futures = {
-            executor.submit(_run_agent, name, state["query"]): name
+            executor.submit(
+                _run_agent, name, state["query"], captured_queue, captured_loop
+            ): name
             for name in agents_to_call
         }
         for future in as_completed(futures):
             name, result = future.result()
             outputs[name] = result
-            log.info(f"Agent [{name}]: completed")
 
+    emit("agents_done")
     state["agent_outputs"] = outputs
     return state
 
 
 def synthesis_node(state: AgentState) -> AgentState:
     log.info("Synthesis: Analyzing findings")
+    emit("synthesis_start")
     llm = get_supervisor_llm()
     callbacks = get_callbacks()
     query = state["query"]
@@ -94,11 +121,13 @@ def synthesis_node(state: AgentState) -> AgentState:
     state["synthesis"] = response
     state["response"] = response
     log.info("Synthesis: completed")
+    emit("synthesis_done")
     return state
 
 
 def action_node(state: AgentState) -> AgentState:
     log.info("Action: analyzing for actions")
+    emit("action_start")
     llm = get_action_llm()
     callbacks = get_callbacks()
     context = build_action_context(state["query"], state["synthesis"])
@@ -111,6 +140,7 @@ def action_node(state: AgentState) -> AgentState:
     response = llm.invoke(messages, config={"callbacks": callbacks})
     state["proposed_actions"] = parse_actions(response.content)
     log.info(f"Action: found {len(state['proposed_actions'])} proposed actions")
+    emit("action_done", count=len(state["proposed_actions"]))
     return state
 
 

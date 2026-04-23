@@ -1,23 +1,11 @@
 from datetime import datetime, timedelta
+
 from langchain_core.tools import tool
+
 from db import Database
+from db import run_async as _run_async
 
 db = Database()
-
-
-def _run_async(coro):
-    import asyncio
-
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import concurrent.futures
-
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                return pool.submit(asyncio.run, coro).result()
-        return loop.run_until_complete(coro)
-    except RuntimeError:
-        return asyncio.run(coro)
 
 
 def _parse_date(date_str: str | None, default_days_ago: int = 0) -> str:
@@ -133,7 +121,9 @@ def get_tickets_by_category(category: str) -> str:
         icon = (
             "🔴"
             if t["priority"] == "high"
-            else "🟡" if t["priority"] == "medium" else "🟢"
+            else "🟡"
+            if t["priority"] == "medium"
+            else "🟢"
         )
         lines.append(f"{icon} [{t['id']}] {t['subject']}")
         lines.append(f"    {t['description'][:100]}...")

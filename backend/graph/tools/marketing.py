@@ -1,22 +1,9 @@
 from langchain_core.tools import tool
+
 from db import Database
+from db import run_async as _run_async
 
 db = Database()
-
-
-def _run_async(coro):
-    import asyncio
-
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import concurrent.futures
-
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                return pool.submit(asyncio.run, coro).result()
-        return loop.run_until_complete(coro)
-    except RuntimeError:
-        return asyncio.run(coro)
 
 
 @tool
@@ -40,7 +27,7 @@ def get_active_campaigns() -> str:
         lines.append(f"{status} {c['name']} (ID: {c['id']})")
         lines.append(f"  Channel: {c['channel']}")
         lines.append(
-            f"  Budget: ${c['spent']:,.0f} / ${c['budget']:,.0f} ({c['spent']/c['budget']*100:.0f}% used)"
+            f"  Budget: ${c['spent']:,.0f} / ${c['budget']:,.0f} ({c['spent'] / c['budget'] * 100:.0f}% used)"
         )
         lines.append(
             f"  Impressions: {c['impressions']:,} | Clicks: {c['clicks']:,} | Conversions: {c['conversions']}"

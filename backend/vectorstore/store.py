@@ -68,10 +68,19 @@ class VectorStore:
                 return QdrantClient(":memory:")
 
         else:
-            log.info(
-                f"VectorStore: server at {Config.QDRANT_HOST}:{Config.QDRANT_PORT}"
-            )
-            return QdrantClient(host=Config.QDRANT_HOST, port=Config.QDRANT_PORT)
+            host = Config.QDRANT_HOST
+            port = Config.QDRANT_PORT
+            log.info(f"VectorStore: server at {host}:{port}")
+            client = QdrantClient(host=host, port=port)
+            # Eagerly verify the connection so startup fails fast with a clear message.
+            try:
+                client.get_collections()
+            except Exception as exc:
+                raise ConnectionError(
+                    f"Cannot reach Qdrant at {host}:{port}. "
+                    "Make sure the Qdrant server is running."
+                ) from exc
+            return client
 
     def _embed(self, text: str) -> list[float]:
         return self.embeddings.embed_query(text)

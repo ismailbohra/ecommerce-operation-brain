@@ -1,22 +1,9 @@
 from langchain_core.tools import tool
+
 from db import Database
+from db import run_async as _run_async
 
 db = Database()
-
-
-def _run_async(coro):
-    import asyncio
-
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import concurrent.futures
-
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                return pool.submit(asyncio.run, coro).result()
-        return loop.run_until_complete(coro)
-    except RuntimeError:
-        return asyncio.run(coro)
 
 
 @tool
@@ -136,7 +123,9 @@ def check_stock_for_products(product_ids: list[int]) -> str:
             status = (
                 "❌ OUT"
                 if stock == 0
-                else "⚠️ LOW" if stock <= item["reorder_level"] else "✓ OK"
+                else "⚠️ LOW"
+                if stock <= item["reorder_level"]
+                else "✓ OK"
             )
             lines.append(f"  {status} {item['name']} (ID: {pid}): {stock} units")
         else:

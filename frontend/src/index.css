@@ -54,6 +54,21 @@ body {
   color: var(--color-accent);
 }
 
+/* ── Agent progress pulse ──────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
+.progress-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  display: inline-block;
+  animation: pulse 1.2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
 /* ── Markdown ──────────────────────────────────────── */
 .markdown > * + *    { margin-top: 0.55rem; }
 .markdown h1,.markdown h2,.markdown h3 { font-weight: 600; line-height: 1.25; margin: 0; }

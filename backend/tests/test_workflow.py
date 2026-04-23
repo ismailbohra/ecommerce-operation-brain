@@ -1,12 +1,14 @@
-import pytest
 import uuid
+
+import pytest
 from deepeval import assert_test
-from deepeval.test_case import LLMTestCase
 from deepeval.dataset import EvaluationDataset
+from deepeval.test_case import LLMTestCase
+
 from graph import create_workflow, run_query
 from tests.metrics import (
-    get_relevancy_metric,
     get_completeness_metric,
+    get_relevancy_metric,
     get_synthesis_quality_metric,
 )
 
@@ -46,7 +48,9 @@ WORKFLOW_TEST_CASES = [
 
 @pytest.fixture(scope="module")
 def workflow():
-    return create_workflow()
+    from langgraph.checkpoint.memory import MemorySaver
+
+    return create_workflow(MemorySaver())
 
 
 @pytest.mark.parametrize("test_data", WORKFLOW_TEST_CASES)
@@ -57,9 +61,9 @@ def test_workflow_routes_correctly(workflow, test_data):
     routed_agents = result.get("agents_to_call", [])
 
     for expected_agent in test_data["expected_agents"]:
-        assert (
-            expected_agent in routed_agents
-        ), f"Expected '{expected_agent}' in routed agents for: {test_data['input']}"
+        assert expected_agent in routed_agents, (
+            f"Expected '{expected_agent}' in routed agents for: {test_data['input']}"
+        )
 
 
 @pytest.mark.parametrize("test_data", WORKFLOW_TEST_CASES)
@@ -101,9 +105,9 @@ def test_workflow_contains_keywords(workflow, test_data):
         kw for kw in test_data["expected_keywords"] if kw.lower() in response
     ]
 
-    assert (
-        len(found_keywords) > 0
-    ), f"Expected at least one of {test_data['expected_keywords']} in response"
+    assert len(found_keywords) > 0, (
+        f"Expected at least one of {test_data['expected_keywords']} in response"
+    )
 
 
 def test_workflow_action_query(workflow):
@@ -124,9 +128,9 @@ def test_workflow_simple_greeting(workflow):
     agents_called = result.get("agents_to_call", [])
 
     # Simple greeting should route to "none" or empty
-    assert (
-        len(agents_called) == 0 or agents_called == []
-    ), f"Greeting should not route to agents, got: {agents_called}"
+    assert len(agents_called) == 0 or agents_called == [], (
+        f"Greeting should not route to agents, got: {agents_called}"
+    )
 
 
 def test_workflow_batch(workflow):

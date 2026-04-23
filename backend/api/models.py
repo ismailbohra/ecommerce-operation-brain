@@ -64,3 +64,42 @@ class MetricsResponse(BaseModel):
     inventory: InventoryMetrics
     support: SupportMetrics
     marketing: MarketingMetrics
+
+
+# ------------------------------------------------------------------ #
+# Sessions
+# ------------------------------------------------------------------ #
+
+
+class SessionListItem(BaseModel):
+    id: str
+    title: str
+    created_at: str
+    updated_at: str
+
+
+class SessionMessage(BaseModel):
+    id: str
+    role: str
+    content: str
+    agents: list[str] = Field(default_factory=list)
+    actions: Optional[list[dict[str, Any]]] = None
+    action_results: Optional[list[str]] = None
+    created_at: str
+
+
+class SessionDetail(BaseModel):
+    id: str
+    title: str
+    created_at: str
+    updated_at: str
+    messages: list[SessionMessage] = Field(default_factory=list)
+
+
+class CreateSessionRequest(BaseModel):
+    session_id: str
+    title: str = "New Chat"
+
+
+class RenameSessionRequest(BaseModel):
+    title: str

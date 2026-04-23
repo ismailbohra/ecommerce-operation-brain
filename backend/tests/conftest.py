@@ -1,9 +1,11 @@
 # tests/conftest.py
-import pytest
 import asyncio
+
+import pytest
+
 from db import seed_database
-from vectorstore import seed_vectors
 from graph import create_workflow
+from vectorstore import seed_vectors
 
 _initialized = False
 
@@ -36,7 +38,9 @@ def event_loop():
 
 @pytest.fixture(scope="session")
 def workflow():
-    return create_workflow()
+    from langgraph.checkpoint.memory import MemorySaver
+
+    return create_workflow(MemorySaver())
 
 
 def pytest_sessionfinish(session, exitstatus):

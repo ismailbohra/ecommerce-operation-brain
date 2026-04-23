@@ -19,6 +19,17 @@ export interface ChatMessage {
   actionResults?: string[]
   isStreaming?: boolean
   error?: boolean
+  progress?: AgentProgress
+}
+
+export interface AgentProgressItem {
+  name: string
+  status: 'running' | 'done'
+}
+
+export interface AgentProgress {
+  stage: 'routing' | 'agents' | 'synthesizing' | 'checking_actions'
+  agents: AgentProgressItem[]
 }
 
 export interface SalesMetrics {
@@ -46,6 +57,16 @@ export interface DashboardMetrics {
 
 export type StreamEvent =
   | { type: 'status'; stage: string }
+  | { type: 'router_start' }
+  | { type: 'router_done'; agents: string[] }
+  | { type: 'agents_start'; agents: string[] }
+  | { type: 'agent_start'; name: string }
+  | { type: 'agent_done'; name: string }
+  | { type: 'agents_done' }
+  | { type: 'synthesis_start' }
+  | { type: 'synthesis_done' }
+  | { type: 'action_start' }
+  | { type: 'action_done'; count: number }
   | { type: 'agents'; agents: string[] }
   | { type: 'token'; text: string }
   | { type: 'actions'; actions: ProposedAction[] }
@@ -56,4 +77,29 @@ export interface ChatHistoryItem {
   role: Role
   content: string
   agents?: string[]
+}
+
+// ------------------------------------------------------------------ //
+// Sessions
+// ------------------------------------------------------------------ //
+
+export interface Session {
+  id: string
+  title: string
+  created_at: string
+  updated_at: string
+}
+
+export interface SessionDetail extends Session {
+  messages: SessionMessage[]
+}
+
+export interface SessionMessage {
+  id: string
+  role: Role
+  content: string
+  agents: string[]
+  actions?: ProposedAction[] | null
+  action_results?: string[] | null
+  created_at: string
 }

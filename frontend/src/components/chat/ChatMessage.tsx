@@ -4,6 +4,7 @@ import { Check, Copy, User, Bot, Info } from 'lucide-react'
 import { useState } from 'react'
 import type { ChatMessage } from '@/types'
 import { AgentBadges } from './AgentBadges'
+import { AgentProgress } from './AgentProgress'
 
 interface ChatMessageItemProps {
   message: ChatMessage
@@ -78,11 +79,13 @@ export function ChatMessageItem({ message }: ChatMessageItemProps) {
           {isUser ? (
             <p style={{ margin:0, whiteSpace:'pre-wrap' }}>{message.content}</p>
           ) : (
-            <div className={`markdown${message.isStreaming ? ' streaming-cursor' : ''}`}>
+            <div className={`markdown${message.isStreaming && message.content ? ' streaming-cursor' : ''}`}>
               {message.content ? (
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {message.content}
                 </ReactMarkdown>
+              ) : message.isStreaming && message.progress ? (
+                <AgentProgress progress={message.progress} />
               ) : message.isStreaming ? (
                 <span style={{ color:'var(--color-fg-muted)' }}>Thinking…</span>
               ) : null}

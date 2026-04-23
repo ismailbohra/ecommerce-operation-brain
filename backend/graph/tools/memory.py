@@ -1,24 +1,12 @@
 from datetime import datetime, timedelta
+
 from langchain_core.tools import tool
+
 from db import Database
+from db import run_async as _run_async
 from vectorstore import VectorStore
 
 db = Database()
-
-
-def _run_async(coro):
-    import asyncio
-
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import concurrent.futures
-
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                return pool.submit(asyncio.run, coro).result()
-        return loop.run_until_complete(coro)
-    except RuntimeError:
-        return asyncio.run(coro)
 
 
 @tool
