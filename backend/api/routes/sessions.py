@@ -16,16 +16,16 @@ router = APIRouter()
 db = Database()
 
 
+def _fmt_dt(val) -> str:
+    return val.isoformat() if hasattr(val, "isoformat") else str(val)
+
+
 def _fmt_session(row: dict) -> SessionListItem:
     return SessionListItem(
         id=str(row["id"]),
         title=row["title"],
-        created_at=row["created_at"].isoformat()
-        if hasattr(row["created_at"], "isoformat")
-        else str(row["created_at"]),
-        updated_at=row["updated_at"].isoformat()
-        if hasattr(row["updated_at"], "isoformat")
-        else str(row["updated_at"]),
+        created_at=_fmt_dt(row["created_at"]),
+        updated_at=_fmt_dt(row["updated_at"]),
     )
 
 
@@ -48,9 +48,7 @@ def _fmt_message(row: dict) -> SessionMessage:
         agents=agents,
         actions=actions,
         action_results=action_results,
-        created_at=row["created_at"].isoformat()
-        if hasattr(row["created_at"], "isoformat")
-        else str(row["created_at"]),
+        created_at=_fmt_dt(row["created_at"]),
     )
 
 
@@ -75,12 +73,8 @@ async def get_session(session_id: str):
     return SessionDetail(
         id=str(session["id"]),
         title=session["title"],
-        created_at=session["created_at"].isoformat()
-        if hasattr(session["created_at"], "isoformat")
-        else str(session["created_at"]),
-        updated_at=session["updated_at"].isoformat()
-        if hasattr(session["updated_at"], "isoformat")
-        else str(session["updated_at"]),
+        created_at=_fmt_dt(session["created_at"]),
+        updated_at=_fmt_dt(session["updated_at"]),
         messages=[_fmt_message(m) for m in messages],
     )
 

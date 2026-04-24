@@ -90,7 +90,7 @@ def get_recent_incidents(days: int = 30, incident_type: str = None) -> str:
             inc_date = datetime.fromisoformat(inc["occurred_at"].replace("Z", "+00:00"))
             if inc_date >= cutoff:
                 recent.append(inc)
-        except:
+        except (ValueError, TypeError, AttributeError):
             recent.append(inc)
 
     if not recent:

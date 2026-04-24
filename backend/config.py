@@ -20,7 +20,6 @@ class Config:
     MODEL_MEMORY = os.getenv("MODEL_MEMORY")
     MODEL_ACTION = os.getenv("MODEL_ACTION")
     MODEL_EMBEDDING = os.getenv("MODEL_EMBEDDING")
-    MODEL_TESTING = os.getenv("MODEL_TESTING")
 
     DATABASE_URL = os.getenv(
         "DATABASE_URL", "postgresql://ecomx:ecomx@localhost:5432/ecomx"

@@ -1,20 +1,11 @@
-from datetime import datetime, timedelta
-
 from langchain_core.tools import tool
 
 from db import Database
 from db import run_async as _run_async
 
+from .utils import _parse_date
+
 db = Database()
-
-
-def _parse_date(date_str: str | None, default_days_ago: int = 0) -> str:
-    if date_str:
-        try:
-            return datetime.strptime(date_str, "%Y-%m-%d").date().isoformat()
-        except ValueError:
-            pass
-    return (datetime.now().date() - timedelta(days=default_days_ago)).isoformat()
 
 
 @tool

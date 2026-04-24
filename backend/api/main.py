@@ -27,7 +27,7 @@ FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
 async def lifespan(app: FastAPI):
     log.info("Initializing system...")
     # Register the main event loop so worker threads can schedule DB coroutines on it.
-    set_main_loop(asyncio.get_event_loop())
+    set_main_loop(asyncio.get_running_loop())
 
     # ── Database ──────────────────────────────────────────────────────────────
     try:
@@ -78,7 +78,7 @@ async def lifespan(app: FastAPI):
         sys.exit(1)
 
 
-app = FastAPI(title="ecomx API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Ecom API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

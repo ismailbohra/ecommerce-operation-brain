@@ -128,7 +128,7 @@ async def chat_stream(request: Request, payload: ChatRequest):
 
         # Per-request queue for progress events emitted by workflow nodes.
         queue: asyncio.Queue = asyncio.Queue()
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         # Wrap the workflow so we can put a sentinel when it finishes.
         async def _run_and_signal():

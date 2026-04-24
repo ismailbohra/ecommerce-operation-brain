@@ -7,7 +7,6 @@ db = Database()
 
 
 def build_action_context(query: str, synthesis: str) -> str:
-    # ctx = fetch_action_context()
     return f"""
 ## User Request
 {query}
@@ -34,7 +33,7 @@ def parse_actions(content: str) -> list[dict]:
         for action in actions:
             action["id"] = str(uuid.uuid4())[:8]
         return actions
-    except:
+    except Exception:
         return []
 
 

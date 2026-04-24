@@ -28,7 +28,7 @@ def run_async(coro):
         return future.result()
     # Fallback: no main loop registered (e.g. tests / CLI scripts)
     try:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         if not loop.is_running():
             return loop.run_until_complete(coro)
     except RuntimeError:

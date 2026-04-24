@@ -14,11 +14,11 @@ from ..models import (
 )
 
 router = APIRouter()
+db = Database()
 
 
 @router.get("/metrics", response_model=MetricsResponse)
 async def get_metrics() -> MetricsResponse:
-    db = Database()
     today = datetime.now().date()
     week_ago = today - timedelta(days=7)
 
