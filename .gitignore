@@ -83,3 +83,4 @@ data/qdrant
 data/*.db
 project_dump.txt
 REPORT.md
+.deepeval
