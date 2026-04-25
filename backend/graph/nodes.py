@@ -1,13 +1,14 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from langchain_core.messages import SystemMessage, HumanMessage
-from config import get_supervisor_llm, get_action_llm, get_callbacks
-from .state import AgentState
-from .prompts import ROUTER_PROMPT, SYNTHESIS_PROMPT, ACTION_PROMPT
-from .agents import AGENTS
-from .actions import build_action_context, parse_actions, execute_action
-from .events import emit
-from logger import log
 from datetime import datetime
+
+from config import get_action_llm, get_supervisor_llm
+from langchain_core.messages import HumanMessage, SystemMessage
+from logger import log
+
+from .actions import build_action_context, execute_action, parse_actions
+from .agents import AGENTS
+from .events import emit
+from .prompts import ACTION_PROMPT, ROUTER_PROMPT, SYNTHESIS_PROMPT
+from .state import AgentState
 
 VALID_AGENTS = {"sales", "inventory", "support", "marketing", "memory"}
 
@@ -16,7 +17,6 @@ def router_node(state: AgentState) -> AgentState:
     log.info("Router: analyzing query")
     emit("router_start")
     llm = get_supervisor_llm()
-    callbacks = get_callbacks()
 
     messages = [
         SystemMessage(content=ROUTER_PROMPT),
@@ -25,9 +25,7 @@ def router_node(state: AgentState) -> AgentState:
         ),
     ]
 
-    response = (
-        llm.invoke(messages, config={"callbacks": callbacks}).content.strip().lower()
-    )
+    response = llm.invoke(messages).content.strip().lower()
 
     if response in ("none", "none."):
         state["agents_to_call"] = []
@@ -45,60 +43,30 @@ def router_node(state: AgentState) -> AgentState:
     return state
 
 
-def _run_agent(
-    agent_name: str,
-    query: str,
-    progress_queue=None,
-    progress_loop=None,
-) -> tuple[str, str]:
-    log.info(f"Agent [{agent_name}]: executing")
-    # Bind the queue in this worker thread so emit() works here too.
-    if progress_queue is not None and progress_loop is not None:
-        from .events import bind_queue
-        bind_queue(progress_queue, progress_loop)
-    emit("agent_start", name=agent_name)
-    result = AGENTS[agent_name].run(query)
-    log.info(f"Agent [{agent_name}]: completed")
-    emit("agent_done", name=agent_name)
-    return agent_name, result
+def _make_agent_node(agent_name: str):
+    def node(state: AgentState) -> dict:
+        log.info(f"Agent [{agent_name}]: executing")
+        emit("agent_start", name=agent_name)
+        result = AGENTS[agent_name].run(state["query"])
+        log.info(f"Agent [{agent_name}]: completed")
+        emit("agent_done", name=agent_name)
+        return {"agent_outputs": {agent_name: result}}
+
+    node.__name__ = f"{agent_name}_agent_node"
+    return node
 
 
-def execute_agents_node(state: AgentState) -> AgentState:
-    agents_to_call = [a for a in state["agents_to_call"] if a in AGENTS]
-
-    if not agents_to_call:
-        state["agent_outputs"] = {}
-        return state
-
-    # Capture the queue/loop from the current thread's context so worker threads
-    # can emit per-agent progress events.
-    from .events import _progress_queue, _progress_loop
-    captured_queue = _progress_queue.get(None)
-    captured_loop = _progress_loop.get(None)
-
-    emit("agents_start", agents=agents_to_call)
-    outputs = {}
-    with ThreadPoolExecutor(max_workers=len(agents_to_call)) as executor:
-        futures = {
-            executor.submit(
-                _run_agent, name, state["query"], captured_queue, captured_loop
-            ): name
-            for name in agents_to_call
-        }
-        for future in as_completed(futures):
-            name, result = future.result()
-            outputs[name] = result
-
-    emit("agents_done")
-    state["agent_outputs"] = outputs
-    return state
+sales_agent_node = _make_agent_node("sales")
+inventory_agent_node = _make_agent_node("inventory")
+support_agent_node = _make_agent_node("support")
+marketing_agent_node = _make_agent_node("marketing")
+memory_agent_node = _make_agent_node("memory")
 
 
 def synthesis_node(state: AgentState) -> AgentState:
     log.info("Synthesis: Analyzing findings")
     emit("synthesis_start")
     llm = get_supervisor_llm()
-    callbacks = get_callbacks()
     query = state["query"]
     outputs = state["agent_outputs"]
 
@@ -117,7 +85,7 @@ def synthesis_node(state: AgentState) -> AgentState:
         HumanMessage(content=content),
     ]
 
-    response = llm.invoke(messages, config={"callbacks": callbacks}).content
+    response = llm.invoke(messages).content
     state["synthesis"] = response
     state["response"] = response
     log.info("Synthesis: completed")
@@ -129,7 +97,6 @@ def action_node(state: AgentState) -> AgentState:
     log.info("Action: analyzing for actions")
     emit("action_start")
     llm = get_action_llm()
-    callbacks = get_callbacks()
     context = build_action_context(state["query"], state["synthesis"])
 
     messages = [
@@ -137,7 +104,7 @@ def action_node(state: AgentState) -> AgentState:
         HumanMessage(content=context),
     ]
 
-    response = llm.invoke(messages, config={"callbacks": callbacks})
+    response = llm.invoke(messages)
     state["proposed_actions"] = parse_actions(response.content)
     log.info(f"Action: found {len(state['proposed_actions'])} proposed actions")
     emit("action_done", count=len(state["proposed_actions"]))

@@ -1,23 +1,41 @@
 from __future__ import annotations
 
-from langgraph.graph import END, START, StateGraph
+import asyncio
 
+from langgraph.graph import END, START, StateGraph
+from langgraph.types import Send
 from logger import log
 
 from .nodes import (
     action_node,
     execute_actions_node,
-    execute_agents_node,
+    inventory_agent_node,
+    marketing_agent_node,
+    memory_agent_node,
     router_node,
+    sales_agent_node,
+    support_agent_node,
     synthesis_node,
 )
 from .state import AgentState
 
+_AGENT_NODES = {
+    "sales": "sales_agent",
+    "inventory": "inventory_agent",
+    "support": "support_agent",
+    "marketing": "marketing_agent",
+    "memory": "memory_agent",
+}
 
-def should_call_agents(state: AgentState) -> str:
+
+def dispatch_to_agents(state: AgentState):
+    """Fan-out via Send to each selected agent node, or go direct to synthesis."""
     if state.get("direct_response", False):
-        return "direct"
-    return "agents"
+        return "synthesis"
+    agents = [a for a in state["agents_to_call"] if a in _AGENT_NODES]
+    if not agents:
+        return "synthesis"
+    return [Send(_AGENT_NODES[name], state) for name in agents]
 
 
 def should_propose_actions(state: AgentState) -> str:
@@ -30,21 +48,40 @@ def create_workflow(checkpointer):
     log.info("Creating workflow graph")
     graph = StateGraph(AgentState)
 
-    # Add nodes
+    # Supervisor nodes
     graph.add_node("router", router_node)
-    graph.add_node("agents", execute_agents_node)
     graph.add_node("synthesis", synthesis_node)
     graph.add_node("action", action_node)
     graph.add_node("execute", execute_actions_node)
 
+    # Per-agent subagent nodes
+    graph.add_node("sales_agent", sales_agent_node)
+    graph.add_node("inventory_agent", inventory_agent_node)
+    graph.add_node("support_agent", support_agent_node)
+    graph.add_node("marketing_agent", marketing_agent_node)
+    graph.add_node("memory_agent", memory_agent_node)
+
     # Define flow
     graph.add_edge(START, "router")
 
-    # Conditional: If router gave "none", go to synthesis directly.
+    # Router → direct synthesis OR fan-out to individual agent nodes via Send
     graph.add_conditional_edges(
-        "router", should_call_agents, {"direct": "synthesis", "agents": "agents"}
+        "router",
+        dispatch_to_agents,
+        [
+            "synthesis",
+            "sales_agent",
+            "inventory_agent",
+            "support_agent",
+            "marketing_agent",
+            "memory_agent",
+        ],
     )
-    graph.add_edge("agents", "synthesis")
+
+    # Each agent node → synthesis (fan-in: synthesis waits for all dispatched agents)
+    for node_name in _AGENT_NODES.values():
+        graph.add_edge(node_name, "synthesis")
+
     graph.add_edge("synthesis", "action")
 
     # Conditional: if actions proposed, go to execute (with HITL interrupt)
@@ -74,6 +111,7 @@ def run_query(
     # Bind the per-request queue so nodes can emit progress events.
     if progress_queue is not None and progress_loop is not None:
         from .events import bind_queue
+
         bind_queue(progress_queue, progress_loop)
 
     config = {"configurable": {"thread_id": thread_id}}

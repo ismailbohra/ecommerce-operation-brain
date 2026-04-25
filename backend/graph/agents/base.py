@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
-from config import get_callbacks
 from datetime import datetime
+
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
 
 class BaseAgent(ABC):
@@ -23,7 +23,6 @@ class BaseAgent(ABC):
         llm = self.get_llm()
         tools = self.get_tools()
         tool_map = {t.name: t for t in tools} if tools else {}
-        callbacks = get_callbacks()
 
         if tools:
             llm = llm.bind_tools(tools)
@@ -49,7 +48,7 @@ class BaseAgent(ABC):
 
         max_iterations = 10
         for _ in range(max_iterations):
-            response = llm.invoke(messages, config={"callbacks": callbacks})
+            response = llm.invoke(messages)
 
             if not hasattr(response, "tool_calls") or not response.tool_calls:
                 return response.content or "No response generated."

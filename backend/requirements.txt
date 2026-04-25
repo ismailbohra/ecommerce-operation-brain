@@ -3,7 +3,6 @@ langchain
 langgraph
 langgraph-checkpoint-postgres
 langchain-openai
-langfuse
 asyncpg
 psycopg[binary]
 qdrant-client
@@ -12,3 +11,4 @@ uvicorn[standard]
 sse-starlette
 pytest
 deepeval
+langsmith

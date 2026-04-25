@@ -1,7 +1,6 @@
 import os
 
 from dotenv import load_dotenv
-
 from logger import log
 
 load_dotenv()
@@ -31,20 +30,6 @@ class Config:
     QDRANT_PATH = os.getenv("QDRANT_PATH")
 
     TEMPERATURE = 0.2
-
-
-def get_langfuse_handler():
-    if not os.getenv("LANGFUSE_SECRET_KEY"):
-        return None
-
-    from langfuse.langchain import CallbackHandler
-
-    return CallbackHandler()
-
-
-def get_callbacks():
-    handler = get_langfuse_handler()
-    return [handler] if handler else []
 
 
 def get_llm(model_name: str = None, temperature: float = None, timeout: int = 120):

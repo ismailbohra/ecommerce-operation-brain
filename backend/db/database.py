@@ -5,76 +5,6 @@ import asyncpg
 from config import Config
 from logger import log
 
-# Each statement executed separately; asyncpg does not support multi-statement
-# queries via the extended query protocol.
-_SCHEMA_STATEMENTS = [
-    """CREATE TABLE IF NOT EXISTS products (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    category TEXT,
-    price REAL,
-    description TEXT
-)""",
-    """CREATE TABLE IF NOT EXISTS inventory (
-    product_id INTEGER PRIMARY KEY,
-    stock INTEGER DEFAULT 0,
-    reorder_level INTEGER DEFAULT 10
-)""",
-    """CREATE TABLE IF NOT EXISTS sales (
-    id SERIAL PRIMARY KEY,
-    product_id INTEGER,
-    quantity INTEGER,
-    amount REAL,
-    sale_date TEXT,
-    region TEXT
-)""",
-    """CREATE TABLE IF NOT EXISTS tickets (
-    id SERIAL PRIMARY KEY,
-    subject TEXT,
-    description TEXT,
-    category TEXT,
-    priority TEXT DEFAULT 'medium',
-    status TEXT DEFAULT 'open',
-    created_at TIMESTAMPTZ DEFAULT NOW()
-)""",
-    """CREATE TABLE IF NOT EXISTS campaigns (
-    id SERIAL PRIMARY KEY,
-    name TEXT,
-    channel TEXT,
-    budget REAL,
-    spent REAL DEFAULT 0,
-    status TEXT DEFAULT 'active',
-    impressions INTEGER DEFAULT 0,
-    clicks INTEGER DEFAULT 0,
-    conversions INTEGER DEFAULT 0
-)""",
-    """CREATE TABLE IF NOT EXISTS incidents (
-    id SERIAL PRIMARY KEY,
-    type TEXT,
-    description TEXT,
-    root_cause TEXT,
-    action_taken TEXT,
-    outcome TEXT,
-    occurred_at TIMESTAMPTZ
-)""",
-    """CREATE TABLE IF NOT EXISTS chat_sessions (
-    id UUID PRIMARY KEY,
-    title TEXT NOT NULL DEFAULT 'New Chat',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-)""",
-    """CREATE TABLE IF NOT EXISTS chat_messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
-    role TEXT NOT NULL,
-    content TEXT NOT NULL DEFAULT '',
-    agents JSONB DEFAULT '[]',
-    actions JSONB DEFAULT NULL,
-    action_results JSONB DEFAULT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-)""",
-]
-
 
 class Database:
     # Class-level pool shared across all instances (tools, actions, routes).
@@ -107,10 +37,6 @@ class Database:
             Database._pool = await asyncpg.create_pool(
                 Config.DATABASE_URL, min_size=2, max_size=10
             )
-        pool = Database._pool
-        async with pool.acquire() as conn:
-            for stmt in _SCHEMA_STATEMENTS:
-                await conn.execute(stmt)
         log.info("Database initialised")
 
     # ------------------------------------------------------------------ #
@@ -258,14 +184,23 @@ class Database:
 
     async def apply_discount(self, product_id: int, percent: float):
         before = await self._fetch(
-            "SELECT price FROM products WHERE id = $1", (product_id,)
+            "SELECT price, original_price FROM products WHERE id = $1", (product_id,)
         )
         if not before:
             return
-        old_price = before[0]["price"]
-        new_price = old_price * (1 - percent / 100.0)
+        row = before[0]
+        # Preserve the original (pre-discount) price on the first discount only
+        base_price = row["original_price"] if row["original_price"] is not None else row["price"]
+        new_price = base_price * (1 - percent / 100.0)
         await self._execute(
-            "UPDATE products SET price = $1 WHERE id = $2", (new_price, product_id)
+            "UPDATE products SET price = $1, original_price = $2, discount_percent = $3 WHERE id = $4",
+            (new_price, base_price, percent, product_id),
+        )
+
+    async def get_discounted_products(self) -> list[dict]:
+        return await self._fetch(
+            "SELECT id, name, category, price, original_price, discount_percent "
+            "FROM products WHERE discount_percent > 0 ORDER BY discount_percent DESC"
         )
 
     # ------------------------------------------------------------------ #
