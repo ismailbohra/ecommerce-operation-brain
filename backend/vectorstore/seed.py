@@ -1,6 +1,8 @@
 from datetime import datetime
-from .store import VectorStore
+
 from logger import log
+
+from .store import VectorStore
 
 
 def seed_vectors():
@@ -14,7 +16,6 @@ def seed_vectors():
     log.info("Seeding VectorStore...")
     seed_incidents(vs)
     seed_tickets(vs)
-    seed_products(vs)
     log.info("VectorStore seeded successfully")
 
 
@@ -387,106 +388,6 @@ def seed_tickets(vs: VectorStore):
         )
 
     log.debug(f"Added {len(tickets)} tickets to VectorStore")
-
-
-def seed_products(vs: VectorStore):
-    products = [
-        (
-            1,
-            "Wireless Headphones",
-            "Electronics",
-            "Premium Bluetooth headphones with active noise cancellation, 30-hour battery life, comfortable over-ear design",
-        ),
-        (
-            2,
-            "Running Shoes",
-            "Footwear",
-            "Lightweight running shoes with responsive cushioning, breathable mesh upper, ideal for marathon training",
-        ),
-        (
-            3,
-            "Winter Jacket",
-            "Clothing",
-            "Waterproof insulated jacket rated to -20°C, adjustable hood, multiple pockets, breathable membrane",
-        ),
-        (
-            4,
-            "Yoga Mat",
-            "Fitness",
-            "Non-slip eco-friendly TPE yoga mat, 6mm thick, includes carrying strap, antimicrobial surface",
-        ),
-        (
-            5,
-            "Laptop Backpack",
-            "Accessories",
-            "Water-resistant backpack with padded 15.6-inch laptop compartment, USB charging port, anti-theft pocket",
-        ),
-        (
-            6,
-            "Smart Watch",
-            "Electronics",
-            "Fitness tracker with heart rate monitor, GPS, sleep tracking, 7-day battery, water resistant to 50m",
-        ),
-        (
-            7,
-            "Coffee Maker",
-            "Home",
-            "Programmable 12-cup drip coffee maker with thermal carafe, auto shut-off, brew strength control",
-        ),
-        (
-            8,
-            "Desk Lamp",
-            "Home",
-            "LED desk lamp with adjustable brightness and color temperature, USB charging port, flexible neck",
-        ),
-        (
-            9,
-            "Bluetooth Speaker",
-            "Electronics",
-            "Portable waterproof speaker with 360° sound, 12-hour battery, IPX7 rating, built-in microphone",
-        ),
-        (
-            10,
-            "Running Shorts",
-            "Clothing",
-            "Quick-dry athletic shorts with built-in liner, zippered pocket, reflective details for visibility",
-        ),
-        (
-            11,
-            "Protein Powder",
-            "Fitness",
-            "Whey protein isolate 2lb, 25g protein per serving, low carb, available in chocolate and vanilla",
-        ),
-        (
-            12,
-            "Wireless Mouse",
-            "Electronics",
-            "Ergonomic wireless mouse with adjustable DPI, silent clicks, USB-C rechargeable, works on any surface",
-        ),
-        (
-            13,
-            "Water Bottle",
-            "Fitness",
-            "Insulated stainless steel bottle, keeps drinks cold 24hr or hot 12hr, leak-proof lid, BPA-free",
-        ),
-        (
-            14,
-            "Sunglasses",
-            "Accessories",
-            "Polarized UV400 protection sunglasses, lightweight frame, scratch-resistant lenses, includes case",
-        ),
-        (
-            15,
-            "Hiking Boots",
-            "Footwear",
-            "Waterproof trail hiking boots with Vibram sole, ankle support, breathable Gore-Tex lining",
-        ),
-    ]
-
-    for p in products:
-        vs.add_product(product_id=p[0], name=p[1], category=p[2], description=p[3])
-
-    log.debug(f"Added {len(products)} products to VectorStore")
 
 
 if __name__ == "__main__":

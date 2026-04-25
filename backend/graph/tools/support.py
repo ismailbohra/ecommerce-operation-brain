@@ -1,7 +1,7 @@
-from langchain_core.tools import tool
-
 from db import Database
 from db import run_async as _run_async
+from langchain_core.tools import tool
+from vectorstore import VectorStore
 
 from .utils import _parse_date
 
@@ -151,10 +151,39 @@ def get_ticket_trends(start_date: str = None, end_date: str = None) -> str:
     return "\n".join(lines)
 
 
+@tool
+def search_resolved_tickets(query: str, limit: int = 5) -> str:
+    """Search resolved tickets for similar issues and their resolutions.
+
+    Args:
+        query: Description of the issue to find similar resolved tickets.
+        limit: Maximum results to return. Defaults to 5.
+    """
+    vs = VectorStore()
+    results = vs.search_tickets(query, limit=limit)
+
+    if not results:
+        return "No similar resolved tickets found."
+
+    lines = [f"Similar Resolved Tickets ({len(results)} found):", ""]
+
+    for i, t in enumerate(results, 1):
+        score = t.get("score", 0)
+        lines.append(
+            f"{i}. [{t['category'].upper()}] {t['subject']} (Relevance: {score:.0%})"
+        )
+        lines.append(f"   Issue: {t['description']}")
+        lines.append(f"   Resolution: {t['resolution']}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
 SUPPORT_TOOLS = [
     get_open_tickets,
     get_ticket_summary,
     get_ticket_details,
     get_tickets_by_category,
     get_ticket_trends,
+    search_resolved_tickets,
 ]

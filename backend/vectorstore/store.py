@@ -1,16 +1,17 @@
-import os
 import atexit
+import os
+
+from config import Config, get_embeddings
+from logger import log
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
-    VectorParams,
-    PointStruct,
-    Filter,
     FieldCondition,
+    Filter,
     MatchValue,
+    PointStruct,
+    VectorParams,
 )
-from config import Config, get_embeddings
-from logger import log
 
 
 class VectorStore:
@@ -20,7 +21,6 @@ class VectorStore:
     COLLECTIONS = {
         "incidents": 1536,
         "tickets": 1536,
-        "products": 1536,
     }
 
     def __new__(cls):
@@ -200,29 +200,6 @@ class VectorStore:
             must=[FieldCondition(key="category", match=MatchValue(value=category))]
         )
         return self._search("tickets", query, limit, filter_cond)
-
-    # ============ PRODUCTS ============
-    def add_product(self, product_id: int, name: str, category: str, description: str):
-        text = f"Product: {name}. Category: {category}. {description}"
-        vector = self._embed(text)
-        self.client.upsert(
-            collection_name="products",
-            points=[
-                PointStruct(
-                    id=product_id,
-                    vector=vector,
-                    payload={
-                        "product_id": product_id,
-                        "name": name,
-                        "category": category,
-                        "description": description,
-                    },
-                )
-            ],
-        )
-
-    def search_products(self, query: str, limit: int = 5) -> list[dict]:
-        return self._search("products", query, limit)
 
     # ============ UTILS ============
     def count(self, collection: str) -> int:
