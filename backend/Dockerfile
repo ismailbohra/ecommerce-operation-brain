@@ -1,13 +1,4 @@
-﻿# ---- Stage 1: build React frontend ----
-FROM node:20-alpine AS frontend-build
-WORKDIR /frontend
-COPY frontend/package*.json ./
-RUN npm install
-COPY frontend/ .
-RUN npm run build
-
-# ---- Stage 2: Python backend ----
-FROM python:3.11-slim
+﻿FROM python:3.11-slim
 WORKDIR /app
 
 COPY backend/requirements.txt .
