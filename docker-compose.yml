@@ -46,6 +46,19 @@ services:
       retries: 10
     networks:
       - ecommerce-network
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ecommerce-frontend
+    restart: on-failure
+    ports:
+      - "3000:80"
+    depends_on:
+      - app
+    networks:
+      - ecommerce-network
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: ecommerce-qdrant

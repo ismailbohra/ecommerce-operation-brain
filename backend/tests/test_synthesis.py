@@ -1,14 +1,15 @@
 import pytest
+from config import get_supervisor_llm
 from deepeval import assert_test
-from deepeval.test_case import LLMTestCase
 from deepeval.dataset import EvaluationDataset
-from langchain_core.messages import SystemMessage, HumanMessage
-from config import get_supervisor_llm, get_callbacks
+from deepeval.test_case import LLMTestCase
 from graph.prompts import SYNTHESIS_PROMPT
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from tests.metrics import (
+    get_completeness_metric,
     get_relevancy_metric,
     get_synthesis_quality_metric,
-    get_completeness_metric,
 )
 
 SYNTHESIS_TEST_CASES = [
@@ -43,7 +44,6 @@ SYNTHESIS_TEST_CASES = [
 
 def run_synthesis(query: str, agent_outputs: dict) -> str:
     llm = get_supervisor_llm()
-    callbacks = get_callbacks()
 
     findings = "\n\n---\n\n".join(
         [f"## {k.upper()} Agent\n\n{v}" for k, v in agent_outputs.items()]
@@ -56,7 +56,7 @@ def run_synthesis(query: str, agent_outputs: dict) -> str:
         HumanMessage(content=content),
     ]
 
-    response = llm.invoke(messages, config={"callbacks": callbacks})
+    response = llm.invoke(messages)
     return response.content
 
 

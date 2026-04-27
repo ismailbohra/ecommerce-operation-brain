@@ -1,230 +1,248 @@
-# Ecom
+# EcomX
 
-An intelligent multi-agent AI system for e-commerce business operations, built with LangGraph and LangChain. This application provides a conversational interface powered by specialized AI agents that handle sales analytics, inventory management, customer support, marketing campaigns, and organizational memory.
+An intelligent multi-agent AI system for e-commerce business operations, built with LangGraph and FastAPI. This application provides a conversational interface powered by specialized AI agents that handle sales analytics, inventory management, customer support, marketing campaigns, and organizational memory.
 
 ---
 
-## 📋 About
+## About
 
-**E-commerce AI Brain** is a sophisticated AI-powered assistant designed to streamline e-commerce operations through natural language interactions. The system uses a **multi-agent architecture** where a supervisor agent routes user queries to specialized domain agents, each equipped with specific tools and knowledge bases.
+**EcomX** is a sophisticated AI-powered assistant designed to streamline e-commerce operations through natural language interactions. The system uses a **multi-agent architecture** where a supervisor (router) agent routes user queries to specialized domain agents, each equipped with specific tools and knowledge bases.
 
 ### Key Features
 
-- **🛒 Sales Agent**: Analyzes sales data, revenue trends, and order patterns
-- **📦 Inventory Agent**: Monitors stock levels, identifies low/out-of-stock items, manages reorder alerts
-- **🎧 Support Agent**: Handles customer tickets, prioritizes issues, and resolves support queries
-- **📢 Marketing Agent**: Manages campaigns, tracks ad spend, and monitors marketing metrics
-- **🧠 Memory Agent**: Maintains organizational knowledge through past incidents and context
-- **✅ Human-in-the-Loop (HITL)**: Actions requiring approval are presented to users before execution
-- **📊 Real-time Dashboard**: Live metrics for sales, inventory, support, and marketing
+- **Sales Agent**: Analyzes sales data, revenue trends, and order patterns
+- **Inventory Agent**: Monitors stock levels, identifies low/out-of-stock items, manages reorder alerts
+- **Support Agent**: Handles customer tickets, prioritizes issues, and resolves support queries
+- **Marketing Agent**: Manages campaigns, tracks ad spend, and monitors marketing metrics
+- **Memory Agent**: Maintains organizational knowledge through past incidents and context
+- **Human-in-the-Loop (HITL)**: Actions requiring approval are presented to users before execution
+- **Real-time Streaming**: SSE-based streaming with per-agent progress events
+- **Dashboard**: Live metrics for sales, inventory, support, and marketing
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
-The project follows a **graph-based multi-agent architecture** using LangGraph:
+The project is split into a **FastAPI backend** and a **React frontend**, connected via a REST/SSE API.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         User Interface                          │
-│                    (Streamlit Web Application)                  │
+│                     React SPA (Vite + TS)                       │
+│   ChatContainer │ SessionList │ Dashboard │ ActionApproval      │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │ HTTP / SSE
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   FastAPI Backend (:8000)                        │
+│   POST /api/chat/stream   GET /api/metrics   /api/sessions/…    │
 └─────────────────────────┬───────────────────────────────────────┘
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                      LangGraph Workflow                         │
-│  ┌──────────┐   ┌──────────┐   ┌───────────┐   ┌────────────┐   │
-│  │  Router  │ → │  Agents  │ → │ Synthesis │ → │   Action   │   │
-│  │   Node   │   │   Node   │   │    Node   │   │    Node    │   │
-│  └──────────┘   └──────────┘   └───────────┘   └────────────┘   │
-│                      │                               │          │
-│         ┌────────────┼────────────┐                  ▼          │
-│         ▼            ▼            ▼          ┌────────────┐     │
-│    ┌─────────┐ ┌───────────┐ ┌─────────┐    │  Execute   │      │
-│    │  Sales  │ │ Inventory │ │ Support │    │   (HITL)   │      │
-│    └─────────┘ └───────────┘ └─────────┘    └────────────┘      │
-│         ▼            ▼            ▼                             │
-│    ┌─────────┐ ┌───────────┐                                    │
-│    │Marketing│ │  Memory   │                                    │
-│    └─────────┘ └───────────┘                                    │
-└─────────────────────────────────────────────────────────────────┘
+│                                                                 │
+│  START → [router] ─────────────────────────────→ [synthesis]   │
+│                  │                                      ↑       │
+│                  └→ [sales_agent]    ────────────────── ┘       │
+│                  └→ [inventory_agent] ───────────────── ┘       │
+│                  └→ [support_agent]  ────────────────── ┘       │
+│                  └→ [marketing_agent] ───────────────── ┘       │
+│                  └→ [memory_agent]   ────────────────── ┘       │
+│                                                                 │
+│            [synthesis] → [action] ──has_actions──→ [execute]   │
+│                                   └─no_actions──→  END         │
+└─────────────────────────┬───────────────────────────────────────┘
                           │
           ┌───────────────┴───────────────┐
           ▼                               ▼
 ┌──────────────────┐            ┌──────────────────┐
-│   SQLite (DB)    │            │  Qdrant Vector   │
-│   - Products     │            │     Store        │
-│   - Sales        │            │   - Incidents    │
-│   - Inventory    │            │   - Tickets      │
-│   - Tickets      │            │   - Products     │
-│   - Campaigns    │            │                  │
-│   - Incidents    │            │                  │
+│  PostgreSQL (DB) │            │  Qdrant Vector   │
+│   - products     │            │     Store        │
+│   - sales        │            │   - incidents    │
+│   - inventory    │            │   - tickets      │
+│   - tickets      │            │   - products     │
+│   - campaigns    │            │                  │
+│   - incidents    │            │                  │
+│   - sessions     │            │                  │
+│   - messages     │            │                  │
 └──────────────────┘            └──────────────────┘
 ```
 
 ### Workflow Flow
 
-1. **Router Node**: Analyzes user query and determines which specialized agents to invoke
-2. **Agents Node**: Executes selected agents in parallel, each using domain-specific tools
-3. **Synthesis Node**: Combines outputs from multiple agents into a coherent response
-4. **Action Node**: Identifies actionable items requiring execution
-5. **Execute Node**: Executes approved actions with Human-in-the-Loop confirmation
+1. **Router Node**: Analyzes the user query with the supervisor LLM and decides which agents to call (or responds directly if no agents are needed)
+2. **Agent Nodes**: Fan-out via `Send` — selected agents run in parallel, each calling domain-specific tools against the database/vector store
+3. **Synthesis Node**: Fan-in — aggregates all agent outputs into a coherent response using the supervisor LLM
+4. **Action Node**: Scans the synthesis for executable actions (e.g., reorder stock, close a ticket) and emits structured `proposed_actions`
+5. **Execute Node**: Pauses for HITL confirmation (`interrupt_before=["execute"]`), then runs only the approved actions
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-ecommerce_ai_brain/
-├── app.py                      # Main Streamlit application entry point
-├── config.py                   # Configuration and LLM initialization
-├── logger.py                   # Logging configuration and utilities
-├── requirements.txt            # Python dependencies
-├── Dockerfile                  # Docker container configuration
-├── docker-compose.yml          # Multi-container Docker setup
-├── python.ini                  # Python configuration
+ecomx-ecommerce-agent/
+├── docker-compose.yml              # Orchestrates app + postgres + qdrant
 │
-├── db/                         # Database layer
-│   ├── __init__.py
-│   ├── database.py             # SQLite database operations (async)
-│   └── seed.py                 # Database seeding with sample data
-│
-├── graph/                      # LangGraph workflow components
-│   ├── __init__.py
-│   ├── workflow.py             # Main graph workflow definition
-│   ├── nodes.py                # Graph node implementations
-│   ├── state.py                # Agent state definitions
-│   ├── actions.py              # Action execution logic
-│   ├── prompts.py              # System prompts for nodes
-│   ├── data_fetchers.py        # Data retrieval utilities
-│   ├── formatters.py           # Output formatting utilities
+├── backend/
+│   ├── requirements.txt            # Python dependencies
+│   ├── python.ini                  # Pytest / logging configuration
+│   ├── Dockerfile
+│   ├── .dockerignore
 │   │
-│   ├── agents/                 # Specialized domain agents
+│   ├── config.py                   # Config class + LLM/embedding factory helpers
+│   ├── logger.py                   # Logging setup
+│   │
+│   ├── api/                        # FastAPI application
+│   │   ├── main.py                 # App factory, lifespan (DB + vectorstore + workflow init)
+│   │   ├── models.py               # Pydantic request/response models
+│   │   └── routes/
+│   │       ├── __init__.py         # APIRouter aggregation (prefix: /api)
+│   │       ├── chat.py             # POST /chat, POST /chat/stream, POST /chat/actions
+│   │       ├── metrics.py          # GET /metrics
+│   │       └── sessions.py         # CRUD /sessions
+│   │
+│   ├── graph/                      # LangGraph workflow
 │   │   ├── __init__.py
-│   │   ├── base.py             # Base agent abstract class
-│   │   ├── sales.py            # Sales analytics agent
-│   │   ├── inventory.py        # Inventory management agent
-│   │   ├── support.py          # Customer support agent
-│   │   ├── marketing.py        # Marketing campaign agent
-│   │   └── memory.py           # Organizational memory agent
+│   │   ├── workflow.py             # Graph definition, create_workflow(), run_query(), resume_with_actions()
+│   │   ├── nodes.py                # router_node, agent nodes, synthesis_node, action_node, execute_actions_node
+│   │   ├── state.py                # AgentState TypedDict
+│   │   ├── actions.py              # Action parsing and execution logic
+│   │   ├── prompts.py              # Loads prompt .md files at import time
+│   │   ├── events.py               # Per-request SSE progress event emitter
+│   │   │
+│   │   ├── agents/                 # Specialized domain agents
+│   │   │   ├── __init__.py
+│   │   │   ├── base.py             # BaseAgent abstract class
+│   │   │   ├── sales.py
+│   │   │   ├── inventory.py
+│   │   │   ├── support.py
+│   │   │   ├── marketing.py
+│   │   │   └── memory.py
+│   │   │
+│   │   └── tools/                  # LangChain tools used by agents
+│   │       ├── __init__.py
+│   │       ├── utils.py
+│   │       ├── sales.py
+│   │       ├── inventory.py
+│   │       ├── support.py
+│   │       ├── marketing.py
+│   │       └── memory.py
 │   │
-│   └── tools/                  # Agent-specific tools
+│   ├── db/                         # PostgreSQL database layer
+│   │   ├── __init__.py
+│   │   ├── database.py             # Async DB operations (asyncpg)
+│   │   └── seed.py                 # Database seeding with sample data
+│   │
+│   ├── vectorstore/                # Qdrant vector store layer
+│   │   ├── __init__.py
+│   │   ├── store.py                # Qdrant client wrapper
+│   │   └── seed.py                 # Vector store seeding
+│   │
+│   ├── prompts/                    # Markdown prompt templates
+│   │   ├── router.md
+│   │   ├── synthesis.md
+│   │   ├── action.md
+│   │   └── agents/
+│   │       ├── sales.md
+│   │       ├── inventory.md
+│   │       ├── support.md
+│   │       ├── marketing.md
+│   │       └── memory.md
+│   │
+│   └── tests/
 │       ├── __init__.py
-│       ├── sales.py            # Sales data tools
-│       ├── inventory.py        # Inventory query tools
-│       ├── support.py          # Ticket management tools
-│       ├── marketing.py        # Campaign management tools
-│       └── memory.py           # Knowledge retrieval tools
+│       ├── conftest.py
+│       ├── metrics.py
+│       ├── test_action.py
+│       ├── test_router.py
+│       ├── test_synthesis.py
+│       ├── test_workflow.py
+│       └── test_agents/
+│           ├── test_sales.py
+│           ├── test_inventory.py
+│           ├── test_support.py
+│           ├── test_marketing.py
+│           └── test_memory.py
 │
-├── prompts/                    # Markdown prompt templates
-│   ├── action.md               # Action extraction prompt
-│   ├── router.md               # Agent routing prompt
-│   ├── synthesis.md            # Response synthesis prompt
-│   └── agents/                 # Agent-specific prompts
-│       ├── sales.md
-│       ├── inventory.md
-│       ├── support.md
-│       ├── marketing.md
-│       └── memory.md
-│
-├── vectorstore/                # Vector database layer
-│   ├── __init__.py
-│   ├── store.py                # Qdrant vector store operations
-│   └── seed.py                 # Vector store seeding
-│
-├── tests/                      # Test suite
-│   ├── __init__.py
-│   ├── conftest.py             # Pytest configuration & fixtures
-│   ├── metrics.py              # Test metrics utilities
-│   ├── test_action.py          # Action node tests
-│   ├── test_router.py          # Router node tests
-│   ├── test_synthesis.py       # Synthesis node tests
-│   ├── test_workflow.py        # End-to-end workflow tests
-│   └── test_agents/            # Agent-specific tests
-│       ├── test_sales.py
-│       ├── test_inventory.py
-│       ├── test_support.py
-│       ├── test_marketing.py
-│       └── test_memory.py
-│
-└── data/                       # Storage for DB and vectorstore
+└── frontend/                       # React + TypeScript + Vite SPA
+    ├── src/
+    │   ├── main.tsx
+    │   ├── App.tsx
+    │   ├── types/index.ts
+    │   ├── lib/
+    │   │   ├── api.ts              # Typed API client (fetch + SSE)
+    │   │   └── utils.ts
+    │   ├── hooks/
+    │   │   ├── useChat.ts
+    │   │   ├── useSessions.ts
+    │   │   └── useMetrics.ts
+    │   └── components/
+    │       ├── layout/AppLayout.tsx
+    │       ├── chat/
+    │       │   ├── ChatContainer.tsx
+    │       │   ├── ChatMessage.tsx
+    │       │   ├── ChatInput.tsx
+    │       │   ├── SessionList.tsx
+    │       │   ├── AgentBadges.tsx
+    │       │   ├── AgentProgress.tsx
+    │       │   └── EmptyState.tsx
+    │       ├── dashboard/
+    │       │   ├── Sidebar.tsx
+    │       │   └── MetricCard.tsx
+    │       └── actions/
+    │           └── ActionApproval.tsx
+    └── package.json
 ```
 
 ---
 
-## 🛠️ Frameworks, Tools & Dependencies
+## Frameworks, Tools & Dependencies
 
-### Core Frameworks
+### Backend
 
-| Framework | Version | Purpose |
-|-----------|---------|---------|
-| **LangChain** | 1.2.6 | LLM orchestration and tool integration |
-| **LangGraph** | 1.0.6 | Graph-based multi-agent workflow |
-| **Streamlit** | 1.53.0 | Web UI and dashboard |
-| **Azure OpenAI** | 2.15.0 | LLM API integration |
-
-### AI/ML Libraries
-
-| Library | Purpose |
+| Package | Purpose |
 |---------|---------|
-| `langchain-openai` | Azure OpenAI integration |
-| `langchain-core` | Core LangChain abstractions |
-| `langgraph-checkpoint` | Workflow state persistence |
-| `tiktoken` | Token counting for LLMs |
-
-### Data Storage
-
-| Technology | Purpose |
-|------------|---------|
-| **SQLite** (via `aiosqlite`) | Relational database for business data |
+| **FastAPI** | REST API + SSE streaming |
+| **LangGraph** | Graph-based multi-agent workflow |
+| **LangChain** | LLM orchestration and tool integration |
+| `langgraph-checkpoint-postgres` | Workflow state persistence (PostgreSQL) |
+| `langchain-openai` | Azure OpenAI LLM + embeddings |
+| **asyncpg / psycopg** | Async PostgreSQL driver |
 | **Qdrant** | Vector database for semantic search |
+| `sse-starlette` | Server-Sent Events support |
+| `python-dotenv` | Environment variable management |
 
-### Observability
+### Frontend
 
-| Tool | Purpose |
-|------|---------|
-| **Langfuse** | LLM observability and tracing |
-| **OpenTelemetry** | Distributed tracing |
+| Package | Purpose |
+|---------|---------|
+| **React 18 + TypeScript** | UI framework |
+| **Vite** | Build tool and dev server |
+| **Tailwind CSS** | Utility-first styling |
+| **shadcn/ui** | Component library |
 
 ### Testing
 
-| Framework | Purpose |
-|-----------|---------|
-| `pytest` | Test framework |
-| `pytest-asyncio` | Async test support |
-| `pytest-xdist` | Parallel test execution |
-| `deepeval` | LLM output evaluation |
-
-### Data Processing
-
-| Library | Purpose |
+| Package | Purpose |
 |---------|---------|
-| `pandas` | Data manipulation |
-| `numpy` | Numerical computing |
-| `plotly` | Data visualization |
-
-### Other Dependencies
-
-- `python-dotenv` - Environment variable management
-- `pydantic` - Data validation
-- `httpx` / `aiohttp` - HTTP clients
-- `grpcio` - gRPC for Qdrant communication
+| `pytest` / `pytest-asyncio` | Test framework |
+| `deepeval` | LLM output evaluation |
+| `langsmith` | Tracing and observability |
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
-### Environment Variables
-
-Create a `.env` file in the project root with the following variables:
+Create a `.env` file inside `backend/`:
 
 ```env
-# Required - Azure OpenAI Configuration
+# Azure OpenAI
 DIAL_API_KEY=your_api_key
 AZURE_ENDPOINT=https://your-endpoint.openai.azure.com/
 API_VERSION=2024-02-15-preview
 
-# Optional - Model Overrides
+# Model overrides (optional)
 MODEL_SUPERVISOR=claude-sonnet-4@20250514
 MODEL_SALES=claude-haiku-4-5@20251001
 MODEL_INVENTORY=claude-haiku-4-5@20251001
@@ -234,140 +252,148 @@ MODEL_MEMORY=claude-haiku-4-5@20251001
 MODEL_ACTION=claude-haiku-4-5@20251001
 MODEL_EMBEDDING=text-embedding-3-small-1
 
-# Database Configuration
-DB_PATH=data/ecommerce.db
+# PostgreSQL
+DATABASE_URL=postgresql://ecomx:ecomx@localhost:5432/ecomx
 
-# Qdrant Configuration
-QDRANT_MODE=memory          # Options: memory, local, server
+# Qdrant
+QDRANT_MODE=server          # Options: memory, local, server
 QDRANT_HOST=localhost
 QDRANT_PORT=6333
 QDRANT_PATH=data/qdrant
-
-# Optional - Langfuse Observability
-LANGFUSE_SECRET_KEY=your_secret_key
-LANGFUSE_PUBLIC_KEY=your_public_key
-LANGFUSE_HOST=https://cloud.langfuse.com
 ```
 
 ---
 
-## 🚀 Instructions to Run
+## Running the Application
 
-### Option 1: Local Development
+### Option 1: Docker Compose (recommended)
+
+```bash
+# Clone the repo
+git clone <repository-url>
+cd ecomx-ecommerce-agent
+
+# Create backend env file
+cp backend/.env.example backend/.env
+# Edit backend/.env with your API keys
+
+# Start all services (app + postgres + qdrant)
+docker compose up --build
+```
+
+Access the app at `http://localhost:8000`.
+
+#### Docker Services
+
+| Service | Image | Port | Purpose |
+|---------|-------|------|---------|
+| `app` | local build | 8000 | FastAPI + React SPA |
+| `postgres` | postgres:16-alpine | 5432 | Primary database |
+| `qdrant` | qdrant/qdrant | 6333 / 6334 | Vector store |
+
+---
+
+### Option 2: Local Development
 
 #### Prerequisites
 
 - Python 3.11+
-- pip or uv package manager
+- Node.js 18+
+- PostgreSQL 14+ running locally
+- Qdrant running locally (or use `QDRANT_MODE=memory` for in-process)
 
-#### Steps
+#### Backend
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd ecommerce_ai_brain
-   ```
+```bash
+cd backend
 
-2. **Create and activate virtual environment**
-   ```bash
-   python -m venv venv
-   
-   # Windows
-   .\venv\Scripts\activate
-   
-   # Linux/Mac
-   source venv/bin/activate
-   ```
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# Linux/Mac
+source .venv/bin/activate
 
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+pip install -r requirements.txt
 
-4. **Set up environment variables**
-   ```bash
-   # Copy the example and fill in your values
-   cp .env.example .env
-   # Edit .env with your API keys
-   ```
+# Copy and fill in env
+cp .env.example .env
 
-5. **Run the application**
-   ```bash
-   streamlit run app.py
-   ```
+# Start the API server
+uvicorn api.main:app --reload --port 8000
+```
 
-6. **Access the application**
-   
-   Open your browser and navigate to `http://localhost:8501`
+#### Frontend
 
----
+```bash
+cd frontend
+npm install
+npm run dev        # starts on http://localhost:5173
+```
 
-### Option 2: Docker Deployment
+The frontend dev server proxies API requests to `http://localhost:8000`. For a production build:
 
-#### Prerequisites
-
-- Docker
-- Docker Compose
-
-#### Steps
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd ecommerce_ai_brain
-   ```
-
-2. **Create environment file**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your API keys
-   ```
-
-3. **Build and run with Docker Compose**
-   ```bash
-   docker-compose up --build
-   ```
-
-4. **Access the application**
-   
-   Open your browser and navigate to `http://localhost:8501`
-
-#### Docker Services
-
-- **app**: Main Streamlit application (port 8501)
-- **qdrant**: Vector database service (port 6333)
-
-#### Data Persistence
-
-Docker volumes persist data between container restarts:
-- `app-data`: SQLite database and Qdrant storage
+```bash
+npm run build      # outputs to frontend/dist/
+# FastAPI serves the dist/ folder automatically
+```
 
 ---
 
 ### Running Tests
 
 ```bash
+cd backend
+
 # Run all tests
 pytest
 
-# Run with verbose output
+# Verbose
 pytest -v
 
-# Run specific test file
+# Specific file
 pytest tests/test_workflow.py
 
-# Run tests in parallel
+# Parallel
 pytest -n auto
 
-# Run with coverage
+# With coverage
 pytest --cov=graph --cov=db --cov=vectorstore
 ```
 
 ---
 
-## 📖 Usage Examples
+## API Endpoints
 
-Once the application is running, you can interact with the AI through natural language:
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/chat` | Single-turn chat (blocking) |
+| `POST` | `/api/chat/stream` | Streaming chat via SSE |
+| `POST` | `/api/chat/actions` | Approve and execute proposed actions |
+| `GET` | `/api/metrics` | Dashboard metrics (sales, inventory, support, marketing) |
+| `GET` | `/api/sessions` | List all sessions |
+| `POST` | `/api/sessions` | Create a session |
+| `GET` | `/api/sessions/{id}` | Session detail + message history |
+| `PATCH` | `/api/sessions/{id}` | Rename session |
+| `DELETE` | `/api/sessions/{id}` | Delete session |
+| `GET` | `/api/health` | Health check |
+
+### SSE Events (`/api/chat/stream`)
+
+Events are emitted in order during a streaming response:
+
+```
+status → router_start → router_done → agents_start →
+  agent_start (×N) / agent_done (×N) →
+agents_done → synthesis_start → synthesis_done →
+action_start → action_done →
+agents → token (×N) → actions? → done
+```
+
+---
+
+## Usage Examples
+
+Once the application is running, interact through natural language:
 
 - **Sales**: "What were our top-selling products last week?"
 - **Inventory**: "Which products are running low on stock?"
@@ -375,7 +401,4 @@ Once the application is running, you can interact with the AI through natural la
 - **Marketing**: "What's the performance of our current campaigns?"
 - **General**: "Give me a business overview for today"
 
-The system will automatically route your query to the appropriate agents and synthesize a comprehensive response.
-
----
-
+The system routes your query to the appropriate agents, runs them in parallel, and synthesizes a comprehensive response. If the response includes actionable items (e.g., reorder stock), they are presented for approval before execution.

@@ -1,10 +1,11 @@
 import pytest
+from config import get_supervisor_llm
 from deepeval import assert_test
-from deepeval.test_case import LLMTestCase
 from deepeval.dataset import EvaluationDataset
-from langchain_core.messages import SystemMessage, HumanMessage
-from config import get_supervisor_llm, get_callbacks
+from deepeval.test_case import LLMTestCase
 from graph.prompts import ROUTER_PROMPT
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from tests.metrics import get_routing_accuracy_metric
 
 ROUTER_TEST_CASES = [
@@ -73,14 +74,13 @@ ROUTER_TEST_CASES = [
 
 def run_router(query: str) -> str:
     llm = get_supervisor_llm()
-    callbacks = get_callbacks()
 
     messages = [
         SystemMessage(content=ROUTER_PROMPT),
         HumanMessage(content=f"Query: {query}"),
     ]
 
-    response = llm.invoke(messages, config={"callbacks": callbacks})
+    response = llm.invoke(messages)
     return response.content.strip().lower()
 
 
@@ -103,9 +103,9 @@ def test_router_includes_required_agents(test_data):
     agents = [a.strip() for a in output.split(",")]
 
     for required in test_data["must_include"]:
-        assert (
-            required in agents
-        ), f"Expected '{required}' in routing for: {test_data['input']}"
+        assert required in agents, (
+            f"Expected '{required}' in routing for: {test_data['input']}"
+        )
 
 
 @pytest.mark.parametrize("test_data", ROUTER_TEST_CASES)
@@ -113,9 +113,9 @@ def test_router_excludes_irrelevant_agents(test_data):
     output = run_router(test_data["input"])
 
     for excluded in test_data["must_not_include"]:
-        assert (
-            excluded not in output
-        ), f"'{excluded}' should not be in routing for: {test_data['input']}"
+        assert excluded not in output, (
+            f"'{excluded}' should not be in routing for: {test_data['input']}"
+        )
 
 
 def test_router_returns_valid_format():
@@ -126,9 +126,9 @@ def test_router_returns_valid_format():
         agents = [a.strip() for a in output.replace(".", "").split(",")]
 
         for agent in agents:
-            assert (
-                agent in valid_agents
-            ), f"Invalid agent '{agent}' returned for: {test_data['input']}"
+            assert agent in valid_agents, (
+                f"Invalid agent '{agent}' returned for: {test_data['input']}"
+            )
 
 
 def test_router_batch():

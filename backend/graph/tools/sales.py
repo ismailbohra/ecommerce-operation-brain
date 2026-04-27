@@ -190,10 +190,17 @@ def get_product_info(product_id: int) -> str:
     if not product:
         return f"Product ID {product_id} not found."
 
+    discount_pct = product.get("discount_percent") or 0
+    original_price = product.get("original_price")
+
+    price_line = f"Price: ${product['price']:.2f}"
+    if discount_pct and original_price:
+        price_line += f" (was ${original_price:.2f}, {discount_pct:.0f}% discount applied)"
+
     return (
         f"Product: {product['name']} (ID: {product_id})\n"
         f"Category: {product['category']}\n"
-        f"Price: ${product['price']:.2f}\n"
+        f"{price_line}\n"
         f"Description: {product['description']}"
     )
 
@@ -208,7 +215,31 @@ def get_all_products_list() -> str:
 
     lines = [f"All Products ({len(products)}):", ""]
     for p in products:
-        lines.append(f"  [{p['id']}] {p['name']} - ${p['price']:.2f} ({p['category']})")
+        discount_pct = p.get("discount_percent") or 0
+        if discount_pct and p.get("original_price"):
+            price_str = f"${p['price']:.2f} [DISCOUNTED {discount_pct:.0f}% off ${p['original_price']:.2f}]"
+        else:
+            price_str = f"${p['price']:.2f}"
+        lines.append(f"  [{p['id']}] {p['name']} - {price_str} ({p['category']})")
+
+    return "\n".join(lines)
+
+
+@tool
+def get_discounted_products() -> str:
+    """Get all products that currently have a discount applied."""
+    products = _run_async(db.get_discounted_products())
+
+    if not products:
+        return "No products currently have a discount applied."
+
+    lines = [f"Discounted Products ({len(products)}):", ""]
+    for p in products:
+        savings = (p["original_price"] or 0) - p["price"]
+        lines.append(
+            f"  [{p['id']}] {p['name']} ({p['category']})\n"
+            f"       {p['discount_percent']:.0f}% off: ${p['original_price']:.2f} → ${p['price']:.2f} (saving ${savings:.2f})"
+        )
 
     return "\n".join(lines)
 
@@ -221,4 +252,5 @@ SALES_TOOLS = [
     get_sales_for_product,
     get_all_products_list,
     get_product_info,
+    get_discounted_products,
 ]

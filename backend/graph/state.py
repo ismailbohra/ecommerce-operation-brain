@@ -2,6 +2,10 @@ from typing import TypedDict, Annotated
 from langgraph.graph.message import add_messages
 
 
+def _merge_outputs(left: dict, right: dict) -> dict:
+    return {**left, **right}
+
+
 class AgentState(TypedDict):
     query: str
     chat_history: Annotated[list, add_messages]
@@ -10,8 +14,8 @@ class AgentState(TypedDict):
     agents_to_call: list[str]
     direct_response: bool
 
-    # Agent responses
-    agent_outputs: dict[str, str]
+    # Agent responses (merged across parallel subagent nodes)
+    agent_outputs: Annotated[dict[str, str], _merge_outputs]
 
     # Synthesis
     synthesis: str

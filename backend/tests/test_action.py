@@ -1,11 +1,13 @@
-import pytest
 import json
+
+import pytest
+from config import get_action_llm
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase
-from langchain_core.messages import SystemMessage, HumanMessage
-from config import get_action_llm, get_callbacks
-from graph.prompts import ACTION_PROMPT
 from graph.actions import parse_actions
+from graph.prompts import ACTION_PROMPT
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from tests.metrics import get_action_correctness_metric
 
 ACTION_TEST_CASES = [
@@ -44,7 +46,6 @@ ACTION_TEST_CASES = [
 
 def run_action_planner(query: str, synthesis: str) -> str:
     llm = get_action_llm()
-    callbacks = get_callbacks()
 
     context = f"""
 ## User Request
@@ -59,7 +60,7 @@ def run_action_planner(query: str, synthesis: str) -> str:
         HumanMessage(content=context),
     ]
 
-    response = llm.invoke(messages, config={"callbacks": callbacks})
+    response = llm.invoke(messages)
     return response.content
 
 
@@ -89,9 +90,9 @@ def test_action_count(test_data):
     output = run_action_planner(test_data["input"], test_data["synthesis"])
     actions = parse_actions(output)
 
-    assert (
-        len(actions) >= test_data["expected_count_min"]
-    ), f"Expected at least {test_data['expected_count_min']} actions, got {len(actions)}"
+    assert len(actions) >= test_data["expected_count_min"], (
+        f"Expected at least {test_data['expected_count_min']} actions, got {len(actions)}"
+    )
 
 
 @pytest.mark.parametrize("test_data", ACTION_TEST_CASES)
@@ -105,9 +106,9 @@ def test_action_types(test_data):
     action_types = [a.get("type") for a in actions]
 
     for expected_type in test_data["expected_action_types"]:
-        assert (
-            expected_type in action_types
-        ), f"Expected action type '{expected_type}' not found in {action_types}"
+        assert expected_type in action_types, (
+            f"Expected action type '{expected_type}' not found in {action_types}"
+        )
 
 
 @pytest.mark.parametrize("test_data", ACTION_TEST_CASES)
@@ -128,6 +129,6 @@ def test_action_no_action_returns_empty():
     )
     actions = parse_actions(output)
 
-    assert (
-        len(actions) == 0
-    ), f"Expected empty actions for non-action query, got: {actions}"
+    assert len(actions) == 0, (
+        f"Expected empty actions for non-action query, got: {actions}"
+    )

@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
 
-from langchain_core.tools import tool
-
 from db import Database
 from db import run_async as _run_async
+from langchain_core.tools import tool
 from vectorstore import VectorStore
 
 db = Database()
@@ -109,34 +108,6 @@ def get_recent_incidents(days: int = 30, incident_type: str = None) -> str:
 
 
 @tool
-def search_resolved_tickets(query: str, limit: int = 5) -> str:
-    """Search resolved tickets for similar issues and their resolutions.
-
-    Args:
-        query: Description of the issue to find similar resolved tickets.
-        limit: Maximum results to return. Defaults to 5.
-    """
-    vs = VectorStore()
-    results = vs.search_tickets(query, limit=limit)
-
-    if not results:
-        return "No similar resolved tickets found."
-
-    lines = [f"Similar Resolved Tickets ({len(results)} found):", ""]
-
-    for i, t in enumerate(results, 1):
-        score = t.get("score", 0)
-        lines.append(
-            f"{i}. [{t['category'].upper()}] {t['subject']} (Relevance: {score:.0%})"
-        )
-        lines.append(f"   Issue: {t['description']}")
-        lines.append(f"   Resolution: {t['resolution']}")
-        lines.append("")
-
-    return "\n".join(lines)
-
-
-@tool
 def get_incident_patterns(incident_type: str = None) -> str:
     """Analyze patterns in historical incidents.
 
@@ -177,6 +148,5 @@ MEMORY_TOOLS = [
     search_similar_incidents,
     search_incidents_by_type,
     get_recent_incidents,
-    search_resolved_tickets,
     get_incident_patterns,
 ]
